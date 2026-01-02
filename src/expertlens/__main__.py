@@ -62,6 +62,11 @@ def cmd_search(args: argparse.Namespace) -> int:
     result = orchestrator.run_search(query=args.query, language=args.lang)
 
     print(f"Session created: {result['session_id']}")
+    print(f"  Query: {result['query']}")
+    print(f"  Language: {result['language']}")
+    print(f"  Experts found: {result['expert_count']}")
+    print(f"  Evidence collected: {result['evidence_count']}")
+    print(f"  Companies identified: {result['company_count']}")
     print(f"Session file: {result['session_path']}")
     print(f"Report file: {result['report_path']}")
 

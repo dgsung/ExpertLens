@@ -1,8 +1,12 @@
 """Pipeline orchestrator for ExpertLens."""
 
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .io.writer import ReportWriter, SessionWriter
+from .models import Query, Session
+from .search import MockSearchProvider
 
 
 class Orchestrator:
@@ -29,17 +33,37 @@ class Orchestrator:
         Returns:
             Dictionary with session info and output paths.
         """
-        # Create session JSON skeleton
-        session_id, session_path = self.session_writer.create_session_skeleton(
-            query=query,
+        now = datetime.now(timezone.utc)
+        session_id = str(uuid.uuid4())
+
+        # Execute mock search
+        search_provider = MockSearchProvider(language=language)
+        results = search_provider.search(query)
+
+        # Build session with results
+        session = Session(
+            session_id=session_id,
             language=language,
+            query=query,
+            queries=[Query(query=query, added_at=now)],
+            created_at=now,
+            updated_at=now,
+            experts=results["experts"],
+            companies=results["companies"],
+            evidence=results["evidence"],
         )
 
-        # Create run report
+        # Write session JSON
+        session_path = self.session_writer.create_session(session)
+
+        # Create run report with counts
         report_path = self.report_writer.create_run_report(
             session_id=session_id,
             query=query,
             language=language,
+            expert_count=len(results["experts"]),
+            evidence_count=len(results["evidence"]),
+            company_count=len(results["companies"]),
         )
 
         return {
@@ -48,4 +72,7 @@ class Orchestrator:
             "report_path": str(report_path),
             "query": query,
             "language": language,
+            "expert_count": len(results["experts"]),
+            "evidence_count": len(results["evidence"]),
+            "company_count": len(results["companies"]),
         }

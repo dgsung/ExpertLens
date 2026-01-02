@@ -26,7 +26,7 @@ Scaffold Search   Extract   Viewer
 | Milestone | Status | Key Deliverable |
 |-----------|--------|-----------------|
 | M010-0 | DONE | `python -m expertlens --help` 동작 |
-| M010-1 | TODO | Session JSON schema validation 통과 |
+| M010-1 | DONE | Session JSON schema validation 통과 |
 | M010-2 | TODO | Expert → Claim → Evidence 역추적 가능 |
 | M010-3 | TODO | 브라우저에서 Graph UI + Detail Panel 표시 |
 
@@ -95,9 +95,9 @@ reports/
 
 **Goal**: 하드코딩/mock 검색으로 session JSON 생성, schema 검증
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-1.md
-- **Commit**: (pending)
+- **Commit**: 34a4c2e
 - **Owner**: (pending)
 
 ### Deliverables
@@ -122,11 +122,11 @@ out/
 
 ### Done Definition
 
-- [ ] `python -m expertlens search "배터리 전문가" --lang ko` 실행
-- [ ] `out/session-<uuid>.json` 생성됨
-- [ ] JSON 필드: `session_id`, `language`, `query`, `queries[]`, `created_at`, `updated_at`, `experts[]`, `evidence[]`
-- [ ] Mock expert 최소 2명, mock evidence 최소 3개 포함
-- [ ] JSON schema validation 통과 (jsonschema 또는 pydantic)
+- [x] `python -m expertlens search "배터리 전문가" --lang ko` 실행
+- [x] `out/session-<uuid>.json` 생성됨
+- [x] JSON 필드: `session_id`, `language`, `query`, `queries[]`, `created_at`, `updated_at`, `experts[]`, `evidence[]`
+- [x] Mock expert 최소 2명, mock evidence 최소 3개 포함
+- [x] JSON schema validation 통과 (jsonschema 또는 pydantic)
 
 ### Tests
 
