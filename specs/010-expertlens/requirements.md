@@ -1,7 +1,8 @@
 # ExpertLens Requirements
-Version: 0.4.0
+Version: 0.5.0
 Last Updated: 2026-01-02
 Change Notes:
+- v0.5.0: Migrated v1 backend from CLI-only to FastAPI (thin wrapper over core)
 - v0.4.0: Added Contact Evidence Policy (maximize collection, Claim vs Candidate)
 - v0.3.1: Restructured for readability (no semantic changes)
 - v0.3.0: Adopted Cytoscape.js as v1 Graph UI library
@@ -116,9 +117,14 @@ Focus: **Explainability validation** with minimal implementation.
 | Component | v1 Decision | vNext |
 |-----------|-------------|-------|
 | **Database** | None (JSON files) | SQLite/PostgreSQL |
-| **Backend** | CLI only | FastAPI |
+| **Backend** | FastAPI (thin wrapper over core) | - |
 | **Frontend** | Static HTML + Vanilla JS | React/Next.js |
 | **Graph UI** | **Cytoscape.js only** | D3.js, force-graph |
+
+**Backend Architecture**:
+- FastAPI는 orchestrator core의 thin wrapper
+- 비즈니스 로직은 `src/expertlens/core/` 모듈에만 존재
+- API 라우트는 core 함수 호출만 담당
 
 ### 4.3 v1 Outputs
 
@@ -149,6 +155,5 @@ Focus: **Explainability validation** with minimal implementation.
 | Review UI | Merge decision review interface |
 | Export | CRM integration |
 | Advanced Graph | D3.js, force-graph alternatives |
-| Database | Persistent storage |
-| Backend Framework | REST API |
+| Database | Persistent storage (SQLite/PostgreSQL) |
 | Frontend Framework | React/Next.js |

@@ -1,7 +1,8 @@
 # ExpertLens Design Specification
-Version: 0.4.0
+Version: 0.5.0
 Last Updated: 2026-01-02
 Change Notes:
+- v0.5.0: Migrated v1 backend to FastAPI (thin wrapper over core)
 - v0.4.0: Added Contact Evidence Strategy (platform rules, Claim vs Candidate)
 - v0.3.1: Restructured for readability (no semantic changes)
 - v0.3.0: Added Cytoscape.js as v1 Graph UI library
@@ -16,18 +17,31 @@ Change Notes:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      CLI Orchestrator                                │
+│                  Frontend Viewer (Cytoscape.js)                      │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                 python -m expertlens <cmd>                   │   │
+│  │  frontend/index.html + app.js + graph.js + style.css         │   │
+│  │  Graph: Cytoscape.js (CDN)                                   │   │
 │  └─────────────────────────────────────────────────────────────┘   │
-│         │              │              │               │             │
-│         ▼              ▼              ▼               ▼             │
-│  ┌───────────┐  ┌────────────┐  ┌──────────┐  ┌──────────────┐    │
-│  │  Search   │  │  Evidence  │  │ Identity │  │ File Writer  │    │
-│  │  Planner  │  │  Fetcher   │  │Resolution│  │  (JSON)      │    │
-│  └───────────┘  └────────────┘  └──────────┘  └──────────────┘    │
-│         │                                            │              │
-│         ▼                                            ▼              │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │ fetch() API calls
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    FastAPI (thin wrapper)                            │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  POST /sessions  │  POST /sessions/{id}/run  │  GET /sessions │  │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                    │                                │
+│                           core.run_session()                        │
+│                                    ▼                                │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    Core Orchestrator                          │   │
+│  │  ┌───────────┐  ┌────────────┐  ┌──────────┐  ┌──────────┐  │   │
+│  │  │  Search   │  │  Evidence  │  │ Identity │  │ File I/O │  │   │
+│  │  │  Planner  │  │  Fetcher   │  │Resolution│  │  (JSON)  │  │   │
+│  │  └───────────┘  └────────────┘  └──────────┘  └──────────┘  │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                │                                    │                │
+│                ▼                                    ▼                │
 │  ┌───────────────────────┐              ┌──────────────────────┐   │
 │  │ DuckDuckGo Adapter    │              │  out/session-*.json  │   │
 │  └───────────────────────┘              └──────────────────────┘   │
@@ -40,20 +54,12 @@ Change Notes:
 │  │Requirement Clarifier│  │Evidence Extractor │                       │
 │  └───────────────────┘  └───────────────────┘                       │
 └─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                  Frontend Viewer (Cytoscape.js)                      │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  frontend/index.html + app.js + graph.js + style.css         │   │
-│  │  Graph: Cytoscape.js (CDN)                                   │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.2 Core Principle
 > LLM handles interpretation/extraction only.
-> Flow control, decisions, and storage are handled by CLI orchestrator.
+> Flow control, decisions, and storage are handled by Core Orchestrator.
+> FastAPI is thin wrapper over core — no business logic in API routes.
 
 ---
 
@@ -61,14 +67,16 @@ Change Notes:
 
 | Step | Action | Output |
 |------|--------|--------|
-| 1 | CLI Input | `session_id` |
-| 2 | Clarification (LLM) | `PreferenceStack` |
-| 3 | Search (DuckDuckGo) | `URL[]` |
-| 4 | Evidence Fetch | `Evidence[]` |
-| 5 | LLM Extraction | `PersonCandidate[]`, `StagingClaim[]` |
-| 6 | Identity Resolution | `ResolutionDecision[]` |
-| 7 | File Write | `out/session-*.json`, `reports/run-*.md` |
-| 8 | Viewer | Graph UI + Detail Panel |
+| 1 | API Request (`POST /sessions`) | `session_id` |
+| 2 | API Request (`POST /sessions/{id}/run`) | trigger orchestrator |
+| 3 | Clarification (LLM) | `PreferenceStack` |
+| 4 | Search (DuckDuckGo) | `URL[]` |
+| 5 | Evidence Fetch | `Evidence[]` |
+| 6 | LLM Extraction | `PersonCandidate[]`, `StagingClaim[]` |
+| 7 | Identity Resolution | `ResolutionDecision[]` |
+| 8 | File Write | `out/session-*.json`, `reports/run-*.md` |
+| 9 | API Response | Session JSON |
+| 10 | Viewer | Graph UI + Detail Panel |
 
 ---
 
@@ -232,25 +240,21 @@ Displays on node selection:
 
 ---
 
-## 5. Orchestrator (CLI)
+## 5. API Layer (FastAPI)
 
-### 5.1 Commands
+### 5.1 Endpoints
 
-```bash
-# New session search
-python -m expertlens search "배터리 전문가" --lang ko
+| Method | Endpoint | Description | Request | Response |
+|--------|----------|-------------|---------|----------|
+| POST | `/sessions` | Create new session | `{ language: string }` | `{ session_id: string }` |
+| GET | `/sessions/{id}` | Get session status | - | `Session` |
+| POST | `/sessions/{id}/run` | Run search | `{ query: string }` | `Session` |
+| GET | `/sessions/{id}/stream` | SSE progress | - | `Event stream` |
+| GET | `/healthz` | Health check | - | `{ status: "ok" }` |
 
-# Add query to existing session
-python -m expertlens session <id> --add-query "삼성SDI 경력자"
+### 5.2 Core Module
 
-# List sessions
-python -m expertlens list
-
-# Help
-python -m expertlens --help
-```
-
-### 5.2 Components
+**Entry Point**: `core.run_session(session_id, query) -> SessionResult`
 
 | Component | Responsibility | I/O |
 |-----------|---------------|-----|
@@ -272,6 +276,15 @@ python -m expertlens --help
 | 0.75–0.90 | Review (v1: treat as new) |
 | < 0.75 | Create new Expert |
 
+### 5.4 CLI (Legacy)
+
+CLI는 개발/디버깅용으로 유지:
+
+```bash
+# Direct core invocation (for debugging)
+python -m expertlens search "배터리 전문가" --lang ko
+```
+
 ---
 
 ## 6. Non-goals / Deferred
@@ -279,7 +292,6 @@ python -m expertlens --help
 | Item | Deferred To |
 |------|-------------|
 | Neo4j AuraDB | vNext |
-| FastAPI Backend | vNext |
 | React Frontend | vNext |
 | WebSocket (real-time) | vNext |
 | D3.js / force-graph | vNext |

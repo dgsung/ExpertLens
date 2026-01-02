@@ -1,8 +1,9 @@
 # ExpertLens — Claude Code Operating Manual
-Version: 1.3.0
+Version: 1.4.0
 Last Updated: 2026-01-02
 Owner: Donggi Sung
 Change Notes:
+- v1.4.0: Migrated v1 backend from CLI-only to FastAPI (thin wrapper over core)
 - v1.3.0: Added Contact Evidence operational rules (maximize collection, Claim vs Candidate)
 - v1.2.1: Restructured for readability (no semantic changes)
 - v1.2.0: Adopted Cytoscape.js as v1 Graph UI library
@@ -79,11 +80,18 @@ The following constraints are **MANDATORY** for v1. Violation requires explicit 
 | Evidence JSON | `out/evidence/<evidence_id>.json` (optional) |
 | Run Report | `reports/run-<timestamp>.md` |
 
-### 3.2 No Backend Framework (v1)
-- Do NOT use FastAPI, Express, Flask, or any HTTP server framework.
-- Python orchestrator runs as **CLI only**.
-- Entry point: `python -m expertlens <command>`
-- Input via CLI arguments; output via file artifacts.
+### 3.2 FastAPI Backend (v1)
+- v1 uses **FastAPI** as a thin wrapper over core orchestrator.
+- **Architecture**: FastAPI routes → `core.run_session()` → file output
+- Entry point: `uvicorn expertlens.api.main:app`
+- API endpoints defined in `src/expertlens/api/routes/`
+
+**Key constraint**: FastAPI is **thin wrapper only**:
+- All business logic lives in `src/expertlens/core/`
+- API routes ONLY call core functions (no business logic in routes)
+- Pydantic models for request/response validation
+
+**CLI (Legacy)**: `python -m expertlens <command>` remains for debugging.
 
 ### 3.3 No Frontend Framework (v1)
 - Do NOT use React, Vue, Svelte, Next.js, Angular, or any frontend framework.
@@ -175,7 +183,8 @@ Every milestone report MUST include:
 
 | Command | Description |
 |---------|-------------|
+| `uvicorn expertlens.api.main:app --reload` | Run API server (dev) |
 | `pytest tests/` | Run tests |
-| `python -m expertlens search "<query>" --lang ko` | CLI search |
+| `python -m expertlens search "<query>" --lang ko` | CLI search (legacy) |
 | `python -m http.server -d frontend 8080` | Viewer server |
 | (TBD) | Lint/Format |

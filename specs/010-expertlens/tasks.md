@@ -1,7 +1,8 @@
 # Tasks / Milestones — ExpertLens
-Version: 0.4.0
+Version: 0.5.0
 Last Updated: 2026-01-02
 Change Notes:
+- v0.5.0: Migrated v1 to FastAPI-based architecture; added M010-4~7 (API milestones)
 - v0.4.0: Added Contact Evidence Policy references, M010-10 (Contact Enhancement)
 - v0.3.1: Added Cytoscape.js to M010-3, added Quick Reference, restructured for consistency
 - v0.2.0: Restructured milestones for v1 (CLI + file-based, no DB/framework)
@@ -11,18 +12,29 @@ Change Notes:
 
 ## Overview
 
-v1은 CLI + 파일 기반 + 정적 viewer로 **설명 가능성(Explainability)** 검증에 집중한다.
+v1은 **FastAPI 기반** + 파일 저장 + Cytoscape.js viewer로 **설명 가능성(Explainability)** 검증에 집중한다.
 
 ```
-M010-0 → M010-1 → M010-2 → M010-3
- CLI     Mock      LLM      Static
-Scaffold Search   Extract   Viewer
-                            + Graph
+CLI Pilot (archived)          API-based v1 (current)
+M010-0 → M010-1 → M010-2 → M010-3    M010-4 → M010-5 → M010-6 → M010-7
+ CLI     Mock      LLM      Static    FastAPI  Sessions  Run+Core Frontend
+Scaffold Search   Extract   Viewer    Scaffold   API    Endpoint  API Int.
 ```
 
 ---
 
 ## Quick Reference
+
+### v1 API Milestones (Current)
+
+| Milestone | Status | Key Deliverable |
+|-----------|--------|-----------------|
+| M010-4 | TODO | FastAPI scaffold + `/healthz` 동작 |
+| M010-5 | TODO | `POST /sessions`, `GET /sessions/{id}` 구현 |
+| M010-6 | TODO | `POST /sessions/{id}/run` + core orchestrator 연동 |
+| M010-7 | TODO | Frontend fetch() API 호출 |
+
+### CLI Pilot (Archived)
 
 | Milestone | Status | Key Deliverable |
 |-----------|--------|-----------------|
@@ -289,21 +301,175 @@ function sessionToElements(session) {
 
 ---
 
-## Dependencies
+## M010-4: FastAPI Scaffold
+
+**Goal**: FastAPI 프로젝트 구조 설정, healthz 엔드포인트
+
+- **Status**: TODO
+- **Report**: reports/milestone-010-4.md
+- **Commit**: (pending)
+- **Owner**: (pending)
+
+### Deliverables
 
 ```
-M010-0 ──► M010-1 ──► M010-2
-                        │
-                        ▼
-                     M010-3
+src/
+└── expertlens/
+    ├── api/
+    │   ├── __init__.py
+    │   ├── main.py           # FastAPI app
+    │   └── routes/
+    │       ├── __init__.py
+    │       └── health.py     # GET /healthz
+    └── core/
+        ├── __init__.py
+        └── orchestrator.py   # Core logic (moved from orchestrator.py)
+```
+
+### Done Definition
+
+- [ ] `uvicorn expertlens.api.main:app` 실행 가능
+- [ ] `GET /healthz` → `{ "status": "ok" }` 응답
+- [ ] OpenAPI docs 자동 생성 (`/docs`)
+- [ ] CORS 설정 (frontend 호출 허용)
+
+### Tests
+
+| 테스트 종류 | 내용 |
+|-------------|------|
+| Manual | `curl localhost:8000/healthz` 확인 |
+| Unit | pytest + httpx TestClient |
+
+---
+
+## M010-5: Sessions API
+
+**Goal**: 세션 생성/조회 API 구현
+
+- **Status**: TODO
+- **Report**: reports/milestone-010-5.md
+- **Commit**: (pending)
+- **Owner**: (pending)
+
+### Deliverables
+
+```
+src/
+└── expertlens/
+    └── api/
+        └── routes/
+            └── sessions.py   # POST /sessions, GET /sessions/{id}
+```
+
+### Done Definition
+
+- [ ] `POST /sessions` → `{ session_id: string }` 반환
+- [ ] `GET /sessions/{id}` → Session JSON 반환
+- [ ] 존재하지 않는 session_id → 404 응답
+- [ ] Pydantic 모델로 request/response 정의
+
+### Tests
+
+| 테스트 종류 | 내용 |
+|-------------|------|
+| Unit | 세션 생성/조회 API 테스트 |
+| Integration | 세션 파일 생성 확인 |
+
+---
+
+## M010-6: Run Endpoint + Core Orchestrator
+
+**Goal**: 검색 실행 API + core 로직 연동
+
+- **Status**: TODO
+- **Report**: reports/milestone-010-6.md
+- **Commit**: (pending)
+- **Owner**: (pending)
+
+### Deliverables
+
+```
+src/
+└── expertlens/
+    ├── api/
+    │   └── routes/
+    │       └── sessions.py   # POST /sessions/{id}/run 추가
+    └── core/
+        └── orchestrator.py   # run_session(session_id, query) 구현
+```
+
+### Done Definition
+
+- [ ] `POST /sessions/{id}/run` → 검색 실행 후 Session JSON 반환
+- [ ] `core.run_session(session_id, query)` 순수 함수 구현
+- [ ] LLM 추출 + Identity Resolution 연동
+- [ ] 파일 출력 유지 (`out/session-*.json`)
+
+### Tests
+
+| 테스트 종류 | 내용 |
+|-------------|------|
+| Integration | API → Core → File 저장 E2E |
+| Manual | 실제 검색 쿼리로 테스트 |
+
+---
+
+## M010-7: Frontend API Integration
+
+**Goal**: Frontend를 API 호출 기반으로 전환
+
+- **Status**: TODO
+- **Report**: reports/milestone-010-7.md
+- **Commit**: (pending)
+- **Owner**: (pending)
+
+### Deliverables
+
+```
+frontend/
+├── index.html       # Chat-like 인터페이스 추가
+├── app.js           # fetch() API 호출로 전환
+└── api.js           # API client 모듈 (신규)
+```
+
+### Done Definition
+
+- [ ] 검색 입력 → API 호출 → 결과 표시
+- [ ] `POST /sessions` + `POST /sessions/{id}/run` 연동
+- [ ] 파일 업로드 방식 유지 (fallback)
+- [ ] Loading 상태 표시
+
+### Tests
+
+| 테스트 종류 | 내용 |
+|-------------|------|
+| Manual | 브라우저에서 검색 → 그래프 표시 테스트 |
+| Manual | API 서버 없을 때 파일 업로드 fallback 확인 |
+
+---
+
+## Dependencies
+
+### CLI Pilot (Archived)
+
+```
+M010-0 ──► M010-1 ──► M010-2 ──► M010-3
+```
+
+### API-based v1 (Current)
+
+```
+M010-4 ──► M010-5 ──► M010-6 ──► M010-7
+FastAPI    Sessions   Run+Core  Frontend
+Scaffold     API      Endpoint  API Int.
 ```
 
 | From | To | Dependency |
 |------|----|------------|
-| M010-0 | M010-1 | CLI 기반. 이후 모든 마일스톤의 전제조건 |
-| M010-1 | M010-2 | Mock 데이터로 JSON schema 확정 |
-| M010-2 | M010-3 | 실제 LLM 추출. M010-1의 schema 기반 |
-| M010-1/2 | M010-3 | Viewer. JSON 파일 사용 |
+| M010-4 | M010-5 | FastAPI 기반. Sessions API의 전제조건 |
+| M010-5 | M010-6 | Sessions 생성 후 Run 가능 |
+| M010-6 | M010-7 | API 동작 후 Frontend 연동 |
+| M010-0~3 | M010-4~7 | CLI Pilot의 core 로직/모델 재사용 |
 
 ---
 
@@ -313,10 +479,10 @@ M010-0 ──► M010-1 ──► M010-2
 
 | ID | 제목 | 설명 |
 |----|------|------|
-| M010-4 | DuckDuckGo Search Integration | 실제 DDG 검색 연동 |
-| M010-5 | Identity Resolution Enhancement | Blocking keys + scoring |
-| M010-6 | Advanced Graph UI | D3.js, force-graph 대안 |
-| M010-7 | Neo4j Integration | Graph DB 저장 |
-| M010-8 | FastAPI Backend | REST API |
-| M010-9 | React Frontend | Interactive UI |
-| M010-10 | Contact Evidence Enhancement | ZoomInfo/Apollo/Lusha 연동, Claim/Candidate 분기 자동화 |
+| M010-11 | DuckDuckGo Search Integration | 실제 DDG 검색 연동 |
+| M010-12 | Identity Resolution Enhancement | Blocking keys + scoring |
+| M010-13 | Advanced Graph UI | D3.js, force-graph 대안 |
+| M010-14 | Neo4j Integration | Graph DB 저장 |
+| M010-15 | React Frontend | Interactive UI |
+| M010-16 | Contact Evidence Enhancement | ZoomInfo/Apollo/Lusha 연동, Claim/Candidate 분기 자동화 |
+| M010-17 | SSE Progress Streaming | 실시간 진행 상황 스트리밍 |
