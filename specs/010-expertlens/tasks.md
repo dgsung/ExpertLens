@@ -31,7 +31,7 @@ Scaffold Search   Extract   Viewer    Scaffold   API    Endpoint  API Int.
 |-----------|--------|-----------------|
 | M010-4 | DONE | FastAPI scaffold + `/healthz` 동작 |
 | M010-5 | DONE | `POST /sessions`, `GET /sessions/{id}` 구현 |
-| M010-6 | TODO | `POST /sessions/{id}/run` + core orchestrator 연동 |
+| M010-6 | DONE | `POST /sessions/{id}/run` + core orchestrator 연동 |
 | M010-7 | TODO | Frontend fetch() API 호출 |
 
 ### CLI Pilot (Archived)
@@ -381,9 +381,9 @@ src/
 
 **Goal**: 검색 실행 API + core 로직 연동
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-6.md
-- **Commit**: (pending)
+- **Commit**: e2304ca
 - **Owner**: (pending)
 
 ### Deliverables
@@ -400,10 +400,10 @@ src/
 
 ### Done Definition
 
-- [ ] `POST /sessions/{id}/run` → 검색 실행 후 Session JSON 반환
-- [ ] `core.run_session(session_id, query)` 순수 함수 구현
-- [ ] LLM 추출 + Identity Resolution 연동
-- [ ] 파일 출력 유지 (`out/session-*.json`)
+- [x] `POST /sessions/{id}/run` → 검색 실행 후 Session JSON 반환
+- [x] `core.run_session(session_id, query)` 순수 함수 구현
+- [x] LLM 추출 + Identity Resolution 연동
+- [x] 파일 출력 유지 (`out/session-*.json`)
 
 ### Tests
 

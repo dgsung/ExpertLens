@@ -120,6 +120,64 @@ class Orchestrator:
             "company_count": len(results["companies"]),
         }
 
+    def run_session(self, session: Session, query: str) -> Session:
+        """Execute a search and update an existing session.
+
+        This is the core function called by the API layer.
+
+        Args:
+            session: Existing session to update.
+            query: Search query to execute.
+
+        Returns:
+            Updated Session object with new results.
+        """
+        now = datetime.now(timezone.utc)
+
+        # Execute mock search
+        search_provider = MockSearchProvider(language=session.language)
+        results = search_provider.search(query)
+
+        # Update session with new query
+        session.query = query
+        session.queries.append(Query(query=query, added_at=now))
+        session.updated_at = now
+
+        # Merge new results with existing (avoiding duplicates by ID)
+        existing_expert_ids = {e.expert_id for e in session.experts}
+        existing_company_ids = {c.company_id for c in session.companies}
+        existing_evidence_ids = {e.evidence_id for e in session.evidence}
+
+        for expert in results["experts"]:
+            if expert.expert_id not in existing_expert_ids:
+                session.experts.append(expert)
+                existing_expert_ids.add(expert.expert_id)
+
+        for company in results["companies"]:
+            if company.company_id not in existing_company_ids:
+                session.companies.append(company)
+                existing_company_ids.add(company.company_id)
+
+        for evidence in results["evidence"]:
+            if evidence.evidence_id not in existing_evidence_ids:
+                session.evidence.append(evidence)
+                existing_evidence_ids.add(evidence.evidence_id)
+
+        # Write updated session JSON
+        self.session_writer.create_session(session)
+
+        # Create run report
+        self.report_writer.create_run_report(
+            session_id=session.session_id,
+            query=query,
+            language=session.language,
+            expert_count=len(session.experts),
+            evidence_count=len(session.evidence),
+            company_count=len(session.companies),
+        )
+
+        return session
+
     def process_urls(
         self,
         urls: list[str],

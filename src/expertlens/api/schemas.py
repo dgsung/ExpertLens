@@ -15,6 +15,12 @@ class CreateSessionRequest(BaseModel):
     language: str = Field(default="ko", description="Session language (ko, en)")
 
 
+class RunSessionRequest(BaseModel):
+    """Request body for running a search in a session."""
+
+    query: str = Field(..., description="Search query to execute")
+
+
 # Response schemas
 class CreateSessionResponse(BaseModel):
     """Response for session creation."""
