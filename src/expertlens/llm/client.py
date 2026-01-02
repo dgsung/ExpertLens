@@ -4,24 +4,21 @@ import json
 import os
 from typing import Any
 
-import httpx
+from huggingface_hub import InferenceClient
 
 
 class HuggingFaceClient:
     """Client for HuggingFace Inference API.
 
-    Uses the free Inference API with open models.
-    No API key required for public models with rate limits.
+    Uses the huggingface_hub InferenceClient for text generation.
     """
 
-    # Free, open models that work without API key
-    DEFAULT_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
+    # Free, open models
+    DEFAULT_MODEL = "meta-llama/Llama-3.2-3B-Instruct"
     BACKUP_MODELS = [
-        "google/flan-t5-xxl",
-        "bigscience/bloom-560m",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "microsoft/Phi-3-mini-4k-instruct",
     ]
-
-    BASE_URL = "https://api-inference.huggingface.co/models"
 
     def __init__(
         self,
@@ -33,13 +30,13 @@ class HuggingFaceClient:
 
         Args:
             model: Model ID to use. Defaults to Mistral-7B-Instruct.
-            api_key: Optional HuggingFace API token for higher rate limits.
+            api_key: Optional HuggingFace API token.
             timeout: Request timeout in seconds.
         """
         self.model = model or self.DEFAULT_MODEL
-        self.api_key = api_key or os.environ.get("HF_API_KEY")
+        self.api_key = api_key or os.environ.get("HF_API_KEY") or os.environ.get("HF_TOKEN")
         self.timeout = timeout
-        self._client = httpx.Client(timeout=timeout)
+        self._client = InferenceClient(token=self.api_key, timeout=timeout)
 
     def generate(
         self,
@@ -48,7 +45,7 @@ class HuggingFaceClient:
         temperature: float = 0.1,
         return_full_text: bool = False,
     ) -> str:
-        """Generate text completion.
+        """Generate text completion using chat API.
 
         Args:
             prompt: The input prompt.
@@ -62,48 +59,16 @@ class HuggingFaceClient:
         Raises:
             RuntimeError: If API call fails.
         """
-        url = f"{self.BASE_URL}/{self.model}"
-
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-
-        payload = {
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": max_new_tokens,
-                "temperature": temperature,
-                "return_full_text": return_full_text,
-                "do_sample": temperature > 0,
-            },
-        }
-
         try:
-            response = self._client.post(url, json=payload, headers=headers)
+            # Use chat completion API for better model compatibility
+            response = self._client.chat_completion(
+                messages=[{"role": "user", "content": prompt}],
+                model=self.model,
+                max_tokens=max_new_tokens,
+                temperature=temperature if temperature > 0 else 0.01,
+            )
+            return response.choices[0].message.content
 
-            if response.status_code == 503:
-                # Model is loading, wait and retry
-                data = response.json()
-                if "estimated_time" in data:
-                    import time
-                    wait_time = min(data["estimated_time"], 30)
-                    time.sleep(wait_time)
-                    return self.generate(
-                        prompt, max_new_tokens, temperature, return_full_text
-                    )
-
-            response.raise_for_status()
-            result = response.json()
-
-            if isinstance(result, list) and len(result) > 0:
-                return result[0].get("generated_text", "")
-            elif isinstance(result, dict):
-                return result.get("generated_text", "")
-            else:
-                return str(result)
-
-        except httpx.HTTPStatusError as e:
-            raise RuntimeError(f"HuggingFace API error: {e.response.status_code} - {e.response.text}")
         except Exception as e:
             raise RuntimeError(f"HuggingFace API error: {e}")
 
@@ -146,8 +111,8 @@ class HuggingFaceClient:
             raise ValueError(f"Failed to parse JSON response: {e}\nResponse: {response[:500]}")
 
     def close(self) -> None:
-        """Close the HTTP client."""
-        self._client.close()
+        """Close the client (no-op for InferenceClient)."""
+        pass  # InferenceClient handles its own connection management
 
     def __enter__(self) -> "HuggingFaceClient":
         return self
