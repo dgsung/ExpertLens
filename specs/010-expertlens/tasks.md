@@ -25,7 +25,7 @@ Scaffold Search   Extract   Viewer
 
 | Milestone | Status | Key Deliverable |
 |-----------|--------|-----------------|
-| M010-0 | TODO | `python -m expertlens --help` 동작 |
+| M010-0 | DONE | `python -m expertlens --help` 동작 |
 | M010-1 | TODO | Session JSON schema validation 통과 |
 | M010-2 | TODO | Expert → Claim → Evidence 역추적 가능 |
 | M010-3 | TODO | 브라우저에서 Graph UI + Detail Panel 표시 |
@@ -49,9 +49,9 @@ Scaffold Search   Extract   Viewer
 
 **Goal**: CLI entrypoint 설정, out/reports 디렉토리 구조 생성
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-0.md
-- **Commit**: (pending)
+- **Commit**: 39ec5d5
 - **Owner**: (pending)
 
 ### Deliverables
@@ -73,10 +73,10 @@ reports/
 
 ### Done Definition
 
-- [ ] `python -m expertlens --help` 실행 시 도움말 출력
-- [ ] `python -m expertlens search "test" --lang ko` 실행 시 `out/session-<uuid>.json` 생성 (빈 skeleton)
-- [ ] `reports/run-<timestamp>.md` 생성 (빈 skeleton)
-- [ ] CLI 에러 핸들링 (잘못된 인자 시 명확한 에러 메시지)
+- [x] `python -m expertlens --help` 실행 시 도움말 출력
+- [x] `python -m expertlens search "test" --lang ko` 실행 시 `out/session-<uuid>.json` 생성 (빈 skeleton)
+- [x] `reports/run-<timestamp>.md` 생성 (빈 skeleton)
+- [x] CLI 에러 핸들링 (잘못된 인자 시 명확한 에러 메시지)
 
 ### Tests
 
