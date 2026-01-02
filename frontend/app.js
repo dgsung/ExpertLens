@@ -1,6 +1,6 @@
 /**
  * ExpertLens Viewer Application
- * Main application logic for session loading and detail panel
+ * Main application logic for chat, graph, and detail panel
  */
 
 (function() {
@@ -18,9 +18,10 @@
         sessionInfo: null,
         detailContent: null,
         graphContainer: null,
-        searchForm: null,
-        searchInput: null,
-        searchButton: null,
+        chatForm: null,
+        chatInput: null,
+        chatSubmit: null,
+        chatMessages: null,
         loadingOverlay: null,
         loadingMessage: null
     };
@@ -34,9 +35,10 @@
         elements.sessionInfo = document.getElementById('session-info');
         elements.detailContent = document.getElementById('detail-content');
         elements.graphContainer = document.getElementById('cy');
-        elements.searchForm = document.getElementById('search-form');
-        elements.searchInput = document.getElementById('search-input');
-        elements.searchButton = document.getElementById('search-button');
+        elements.chatForm = document.getElementById('chat-form');
+        elements.chatInput = document.getElementById('chat-input');
+        elements.chatSubmit = document.getElementById('chat-submit');
+        elements.chatMessages = document.getElementById('chat-messages');
         elements.loadingOverlay = document.getElementById('loading-overlay');
         elements.loadingMessage = document.getElementById('loading-message');
 
@@ -65,13 +67,14 @@
      */
     function updateApiStatusUI() {
         if (apiAvailable) {
-            elements.searchButton.disabled = false;
-            elements.searchInput.placeholder = '전문가 검색 (예: 배터리 전문가)';
+            elements.chatSubmit.disabled = false;
+            elements.chatInput.placeholder = '전문가 검색...';
             console.log('API server connected');
         } else {
-            elements.searchButton.disabled = true;
-            elements.searchInput.placeholder = 'API 서버 연결 안됨 - 파일 로드 사용';
-            console.warn('API server not available, using file upload fallback');
+            elements.chatSubmit.disabled = true;
+            elements.chatInput.placeholder = 'API 서버 연결 안됨';
+            addMessage('system', 'API 서버에 연결할 수 없습니다. 파일 로드를 사용해주세요.');
+            console.warn('API server not available');
         }
     }
 
@@ -79,8 +82,8 @@
      * Set up event listeners
      */
     function setupEventListeners() {
-        // Search form submit
-        elements.searchForm.addEventListener('submit', handleSearchSubmit);
+        // Chat form submit
+        elements.chatForm.addEventListener('submit', handleChatSubmit);
 
         // File input change
         elements.fileInput.addEventListener('change', handleFileSelect);
@@ -95,8 +98,8 @@
             }
         });
 
-        // Retry API connection on click when disconnected
-        elements.searchInput.addEventListener('focus', async function() {
+        // Retry API connection on focus
+        elements.chatInput.addEventListener('focus', async function() {
             if (!apiAvailable) {
                 await checkApiStatus();
             }
@@ -104,25 +107,44 @@
     }
 
     /**
-     * Handle search form submission
+     * Add message to chat
+     * @param {string} type - 'user', 'assistant', or 'system'
+     * @param {string} content - Message content (can include HTML)
+     */
+    function addMessage(type, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+        elements.chatMessages.appendChild(messageDiv);
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    }
+
+    /**
+     * Handle chat form submission
      * @param {Event} event - Form submit event
      */
-    async function handleSearchSubmit(event) {
+    async function handleChatSubmit(event) {
         event.preventDefault();
 
-        const query = elements.searchInput.value.trim();
+        const query = elements.chatInput.value.trim();
         if (!query) return;
 
+        // Add user message
+        addMessage('user', escapeHtml(query));
+        elements.chatInput.value = '';
+
         if (!apiAvailable) {
-            showError('API 서버에 연결할 수 없습니다. 파일 로드를 사용해주세요.');
+            addMessage('system', 'API 서버에 연결할 수 없습니다.');
             return;
         }
 
         try {
-            showLoading('세션 생성 중...');
+            elements.chatSubmit.disabled = true;
+            showLoading('검색 중...');
 
-            // Create session or use existing
+            // Create session if needed
             if (!currentSessionId) {
+                showLoading('세션 생성 중...');
                 const result = await ExpertLensAPI.createSession('ko');
                 currentSessionId = result.session_id;
             }
@@ -131,16 +153,35 @@
 
             // Run search
             const session = await ExpertLensAPI.runSearch(currentSessionId, query);
-            loadSession(session, `Session: ${currentSessionId.substring(0, 8)}...`);
 
-            // Clear input
-            elements.searchInput.value = '';
+            // Load session into graph
+            loadSession(session);
+
+            // Add assistant response
+            const expertCount = session.experts ? session.experts.length : 0;
+            const companyCount = session.companies ? session.companies.length : 0;
+
+            let responseHtml = `${expertCount}명의 전문가를 찾았습니다.`;
+
+            if (expertCount > 0) {
+                responseHtml += `<div class="result-card"><h4>전문가 목록</h4><ul>`;
+                session.experts.slice(0, 5).forEach(expert => {
+                    responseHtml += `<li>${escapeHtml(expert.canonical_name)}</li>`;
+                });
+                if (expertCount > 5) {
+                    responseHtml += `<li>... 외 ${expertCount - 5}명</li>`;
+                }
+                responseHtml += `</ul></div>`;
+            }
+
+            addMessage('assistant', responseHtml);
 
         } catch (error) {
             console.error('Search failed:', error);
-            showError(`검색 실패: ${error.message}`);
+            addMessage('system', `오류: ${error.message}`);
         } finally {
             hideLoading();
+            elements.chatSubmit.disabled = false;
         }
     }
 
@@ -157,16 +198,17 @@
         reader.onload = function(e) {
             try {
                 const session = JSON.parse(e.target.result);
-                loadSession(session, file.name);
+                loadSession(session);
+                addMessage('system', `파일 로드됨: ${file.name}`);
             } catch (error) {
                 console.error('Failed to parse JSON:', error);
-                elements.sessionInfo.textContent = 'Error: Invalid JSON file';
+                addMessage('system', '오류: 올바른 JSON 파일이 아닙니다.');
             }
         };
 
         reader.onerror = function() {
             console.error('Failed to read file');
-            elements.sessionInfo.textContent = 'Error: Failed to read file';
+            addMessage('system', '오류: 파일을 읽을 수 없습니다.');
         };
 
         reader.readAsText(file);
@@ -175,16 +217,16 @@
     /**
      * Load session data
      * @param {Object} session - Session JSON object
-     * @param {string} filename - Source filename
      */
-    function loadSession(session, filename) {
+    function loadSession(session) {
         currentSession = session;
+        currentSessionId = session.session_id;
 
         // Update session info
         const expertCount = session.experts ? session.experts.length : 0;
         const evidenceCount = session.evidence ? session.evidence.length : 0;
         elements.sessionInfo.textContent =
-            `${filename} | ${expertCount} experts, ${evidenceCount} evidence`;
+            `${expertCount} experts, ${evidenceCount} evidence`;
 
         // Load into graph
         ExpertGraph.loadSessionToGraph(cy, session);
@@ -379,12 +421,8 @@
      */
     function showPlaceholder() {
         if (!currentSession) {
-            const message = apiAvailable
-                ? '검색어를 입력하거나 세션 파일을 로드하세요.'
-                : 'API 서버 연결 안됨. 세션 JSON 파일을 로드하세요.';
             elements.detailContent.innerHTML = `
                 <div class="placeholder">
-                    <p>${message}</p>
                     <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
                 </div>
             `;
@@ -393,7 +431,7 @@
             const companyCount = currentSession.companies ? currentSession.companies.length : 0;
             elements.detailContent.innerHTML = `
                 <div class="placeholder">
-                    <p>세션 로드됨: ${expertCount} 전문가, ${companyCount} 기업</p>
+                    <p>${expertCount} 전문가, ${companyCount} 기업</p>
                     <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
                 </div>
             `;
@@ -407,7 +445,6 @@
     function showLoading(message = '로딩 중...') {
         elements.loadingMessage.textContent = message;
         elements.loadingOverlay.classList.remove('hidden');
-        elements.searchButton.disabled = true;
     }
 
     /**
@@ -415,21 +452,6 @@
      */
     function hideLoading() {
         elements.loadingOverlay.classList.add('hidden');
-        if (apiAvailable) {
-            elements.searchButton.disabled = false;
-        }
-    }
-
-    /**
-     * Show error message
-     * @param {string} message - Error message
-     */
-    function showError(message) {
-        elements.sessionInfo.textContent = `오류: ${message}`;
-        elements.sessionInfo.style.color = '#e74c3c';
-        setTimeout(() => {
-            elements.sessionInfo.style.color = '';
-        }, 5000);
     }
 
     /**

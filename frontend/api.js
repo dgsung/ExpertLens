@@ -6,9 +6,23 @@
 const ExpertLensAPI = (function() {
     'use strict';
 
+    // Detect Codespaces environment and set API URL accordingly
+    function detectApiUrl() {
+        const hostname = window.location.hostname;
+
+        // GitHub Codespaces: *.app.github.dev
+        if (hostname.includes('.app.github.dev')) {
+            // Replace port 8080 with 8000 in the URL
+            return window.location.origin.replace('-8080.', '-8000.');
+        }
+
+        // Local development
+        return 'http://localhost:8000';
+    }
+
     // API Configuration
     const config = {
-        baseUrl: 'http://localhost:8000',
+        baseUrl: detectApiUrl(),
         timeout: 30000
     };
 
