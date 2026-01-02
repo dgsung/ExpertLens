@@ -1,0 +1,126 @@
+# ExpertLens Requirements
+Version: 0.3.1
+Last Updated: 2026-01-02
+Change Notes:
+- v0.3.1: Restructured for readability (no semantic changes)
+- v0.3.0: Adopted Cytoscape.js as v1 Graph UI library
+- v0.2.0: Added Pilot Delivery Mode (v1 Constraints) section
+- v0.1.0: Initial version
+
+---
+
+## 1. Purpose & Success Criteria
+
+### 1.1 What is ExpertLens?
+Search-grounded Expert Discovery System that:
+1. Structures user requirements into a Preference Stack
+2. Collects evidence from public web searches
+3. Normalizes experts into single Expert entities
+4. Provides results via explainable UI
+
+### 1.2 Success Criteria
+- Every Expert/Company/Contact is traceable to Evidence URLs
+- No invented facts without Evidence
+- Users can understand *why* each expert was surfaced
+
+---
+
+## 2. Core Design Constraints
+
+| Constraint | Decision |
+|------------|----------|
+| **Explainability** | All results must link to Evidence URLs |
+| **Company Scope** | Variable: required / preferred / none |
+| **Credibility vs Contactability** | Orthogonal signals (tracked separately) |
+| **Incremental Discovery** | Session-based, cumulative exploration |
+| **Entity-Level ID** | Experts identified as individual persons |
+
+---
+
+## 3. User Experience
+
+### 3.1 Session Management
+- Session-scoped exploration state
+- Evidence/Expert accumulation across queries
+- Session file switching (file-based in v1)
+
+### 3.2 Graph UI (Cytoscape.js)
+**v1 Layout**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Session Selector                        │
+├─────────────────────────────┬───────────────────────────────┤
+│      Graph UI               │        Detail Panel           │
+│  (Cytoscape.js)             │  - Expert Info                │
+│  - Expert nodes             │  - Claims (Employment/Contact)│
+│  - Company nodes            │  - Evidence URLs              │
+│  - Employment edges         │                               │
+└─────────────────────────────┴───────────────────────────────┘
+```
+
+**v1 Graph Features**:
+- Expert nodes (size reflects evidence count)
+- Company nodes
+- Employment edges
+- Node click → Detail Panel sync
+
+### 3.3 Detail Panel
+- Expert info display
+- Claims (Employment, Contact)
+- Evidence URL links (clickable)
+
+### 3.4 Language Policy
+| Rule | Description |
+|------|-------------|
+| Input = Output | Response language matches query language |
+| Session-scoped | `session.language` maintained per session |
+| LLM calls | `output_language` always specified |
+
+---
+
+## 4. Pilot Delivery Mode (v1)
+
+### 4.1 v1 Scope
+Focus: **Explainability validation** with minimal implementation.
+
+### 4.2 v1 Constraints
+
+| Component | v1 Decision | vNext |
+|-----------|-------------|-------|
+| **Database** | None (JSON files) | SQLite/PostgreSQL |
+| **Backend** | CLI only | FastAPI |
+| **Frontend** | Static HTML + Vanilla JS | React/Next.js |
+| **Graph UI** | **Cytoscape.js only** | D3.js, force-graph |
+
+### 4.3 v1 Outputs
+
+| Output | Path | Description |
+|--------|------|-------------|
+| Session JSON | `out/session-<id>.json` | Machine-readable |
+| Evidence JSON | `out/evidence/<id>.json` | Optional |
+| Run Report | `reports/run-<ts>.md` | Human-readable |
+
+### 4.4 v1 Graph Library
+
+| Library | v1 | Reason |
+|---------|-----|--------|
+| **Cytoscape.js** | **Yes** | Vanilla JS compatible, CDN loadable |
+| D3.js | No | Low-level, steep learning curve |
+| force-graph | No | WebGL complexity |
+| vis.js | No | Not considered |
+
+---
+
+## 5. Out of Scope (vNext)
+
+| Item | Description |
+|------|-------------|
+| User Auth | Per-user session isolation |
+| UX Optimization | Graph stabilization, progressive rendering |
+| Performance | Caching, batching, indexing |
+| Review UI | Merge decision review interface |
+| Export | CRM integration |
+| Advanced Graph | D3.js, force-graph alternatives |
+| Database | Persistent storage |
+| Backend Framework | REST API |
+| Frontend Framework | React/Next.js |
