@@ -1,7 +1,8 @@
 # ExpertLens Requirements
-Version: 0.3.1
+Version: 0.4.0
 Last Updated: 2026-01-02
 Change Notes:
+- v0.4.0: Added Contact Evidence Policy (maximize collection, Claim vs Candidate)
 - v0.3.1: Restructured for readability (no semantic changes)
 - v0.3.0: Adopted Cytoscape.js as v1 Graph UI library
 - v0.2.0: Added Pilot Delivery Mode (v1 Constraints) section
@@ -32,8 +33,35 @@ Search-grounded Expert Discovery System that:
 | **Explainability** | All results must link to Evidence URLs |
 | **Company Scope** | Variable: required / preferred / none |
 | **Credibility vs Contactability** | Orthogonal signals (tracked separately) |
+| **Contact Evidence** | Maximize collection within public scope; Claim only with URL verification |
 | **Incremental Discovery** | Session-based, cumulative exploration |
 | **Entity-Level ID** | Experts identified as individual persons |
+
+### 2.1 Contact Evidence Policy
+
+**원칙**: "최대한 찾되, 단정은 증거가 있을 때만"
+
+**Claim vs Candidate 구분**:
+
+| 유형 | 조건 | UI 라벨 |
+|------|------|---------|
+| **ContactClaim** | URL 확인 가능, 로그인 불필요 | "공개 확인됨" |
+| **ContactCandidate** | 간접 신호, 약한 증거 | "외부 DB/간접 신호" |
+
+**적극 포함 소스** (ContactClaim 생성 가능):
+- 회사/연구소 공식 사이트 (Leadership, People, Contact 페이지)
+- 개인 웹사이트/블로그 (Contact, About 페이지)
+- Conference/Speaker 페이지
+- GitHub (public email)
+- Google Scholar / ResearchGate (공개 프로필)
+- Medium / Substack (공개 연락 채널)
+- 공개 소셜 (X, Facebook, Instagram) — 명시적 연락 채널이 있을 때만
+
+**조건부 포함** (ZoomInfo, Apollo, Lusha):
+- DuckDuckGo로 공개 인덱싱 페이지 발견: 허용
+- 로그인 없이 연락 채널 명시적 노출 + URL 확인 가능: **ContactClaim 허용**
+- 위 조건 미충족: **ContactCandidate only**
+- 로그인/유료 벽 필요: Evidence URL 노출 금지, Claim 생성 금지
 
 ---
 

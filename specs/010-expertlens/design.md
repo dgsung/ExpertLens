@@ -1,7 +1,8 @@
 # ExpertLens Design Specification
-Version: 0.3.1
+Version: 0.4.0
 Last Updated: 2026-01-02
 Change Notes:
+- v0.4.0: Added Contact Evidence Strategy (platform rules, Claim vs Candidate)
 - v0.3.1: Restructured for readability (no semantic changes)
 - v0.3.0: Added Cytoscape.js as v1 Graph UI library
 - v0.2.0: Refactored for v1 (CLI + file-based)
@@ -141,6 +142,37 @@ Change Notes:
 **EmploymentClaim**: Expert ↔ Company (role, dates, evidence)
 **ContactClaim**: Expert ↔ ContactPoint (status, evidence)
 **MergeDecision**: Identity resolution audit log
+
+#### 3.3.1 Contact Evidence Strategy
+
+**원칙**: 공개 범위에서 최대 수집, URL 확인 가능할 때만 Claim 생성
+
+**플랫폼별 허용 규칙**:
+
+| Platform | 허용 조건 | 결과 |
+|----------|-----------|------|
+| 회사/연구소 공식 사이트 | 공개 Leadership/People/Contact 페이지 | **ContactClaim** |
+| 개인 웹사이트/블로그 | 공개 Contact/About 페이지 | **ContactClaim** |
+| Conference/Speaker 페이지 | 공개 프로필 | **ContactClaim** |
+| GitHub | public email 노출 | **ContactClaim** |
+| Google Scholar / ResearchGate | 공개 프로필 | **ContactClaim** |
+| Medium / Substack | 공개 연락 채널 | **ContactClaim** |
+| LinkedIn | 공개 프로필 + 명시적 연락 채널 | **ContactClaim** |
+| X (Twitter) / Facebook / Instagram | 명시적 연락 채널 있을 때만 | **ContactClaim** |
+| ZoomInfo / Apollo / Lusha | 로그인 없이 노출 + URL 확인 가능 | **ContactClaim** |
+| ZoomInfo / Apollo / Lusha | 로그인/유료 벽 필요 | **ContactCandidate** |
+| ZoomInfo / Apollo / Lusha | 로그인 필수 + URL 노출 불가 | **수집 제외** |
+
+**발견 방식**:
+- DuckDuckGo 검색으로 공개 인덱싱 페이지 발견: 허용
+- 로그인/유료 페이지 우회 시도: 금지
+
+**UI 라벨링**:
+
+| 유형 | 라벨 | 설명 |
+|------|------|------|
+| ContactClaim | "공개 확인됨" | 공개 페이지에서 확인된 연락 채널 |
+| ContactCandidate | "외부 DB/간접 신호" | 외부 데이터베이스 또는 간접적 신호 |
 
 ### 3.4 Cytoscape.js Graph Format
 

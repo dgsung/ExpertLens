@@ -1,7 +1,8 @@
 # Tasks / Milestones — ExpertLens
-Version: 0.3.1
+Version: 0.4.0
 Last Updated: 2026-01-02
 Change Notes:
+- v0.4.0: Added Contact Evidence Policy references, M010-10 (Contact Enhancement)
 - v0.3.1: Added Cytoscape.js to M010-3, added Quick Reference, restructured for consistency
 - v0.2.0: Restructured milestones for v1 (CLI + file-based, no DB/framework)
 - v0.1.0: Initialized milestone plan with parseable metadata fields.
@@ -194,6 +195,9 @@ out/
 - LLM API 호출 필요 (HuggingFace Inference API)
 - Rate limit 주의
 - 추출 품질은 프롬프트 튜닝 필요 (별도 iteration)
+- **Contact Evidence Policy**: requirements.md 2.1절, design.md 3.3.1절 참조
+  - ContactClaim: 공개 URL 확인 가능 시만 생성
+  - ContactCandidate: 간접 신호/외부 DB 출처
 
 ---
 
@@ -315,3 +319,4 @@ M010-0 ──► M010-1 ──► M010-2
 | M010-7 | Neo4j Integration | Graph DB 저장 |
 | M010-8 | FastAPI Backend | REST API |
 | M010-9 | React Frontend | Interactive UI |
+| M010-10 | Contact Evidence Enhancement | ZoomInfo/Apollo/Lusha 연동, Claim/Candidate 분기 자동화 |

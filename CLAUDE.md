@@ -1,8 +1,9 @@
 # ExpertLens — Claude Code Operating Manual
-Version: 1.2.1
+Version: 1.3.0
 Last Updated: 2026-01-02
 Owner: Donggi Sung
 Change Notes:
+- v1.3.0: Added Contact Evidence operational rules (maximize collection, Claim vs Candidate)
 - v1.2.1: Restructured for readability (no semantic changes)
 - v1.2.0: Adopted Cytoscape.js as v1 Graph UI library
 - v1.1.0: Added v1 Pilot Constraints section (DB/backend/frontend framework restrictions)
@@ -34,6 +35,32 @@ Change Notes:
 | 2 | **Company scope is variable** | Required / bonus / irrelevant (not fixed) |
 | 3 | **Orthogonal signals** | Credibility and contactability tracked separately |
 | 4 | **Incremental discovery** | Work in milestones; each produces demoable increment + report |
+| 5 | **Contact Evidence 최대화** | 공개 범위 내 최대 수집. Claim은 URL 확인 가능 시만 생성 |
+
+### 2.1 Contact Evidence 운영 규칙
+
+**원칙**: "최대한 찾되, 단정은 증거가 있을 때만"
+
+**금지 사항**:
+- 로그인/유료 페이지 우회 시도 금지
+- 비공개 정보 Evidence URL 노출 금지
+- URL 확인 불가 시 ContactClaim 생성 금지
+
+**Claim 생성 조건**:
+| 조건 | 결과 |
+|------|------|
+| 공개 페이지 + URL 확인 가능 + 로그인 불필요 | **ContactClaim** |
+| 외부 DB 출처 또는 간접 신호 | **ContactCandidate** |
+| 로그인 필수 + URL 확인 불가 | **수집 제외** |
+
+**ZoomInfo / Apollo / Lusha**:
+- DuckDuckGo 검색으로 공개 인덱싱 페이지 발견: 허용
+- 로그인 없이 연락 채널 노출 + URL 확인 가능: **ContactClaim 허용**
+- 로그인/유료 벽 필요: **ContactCandidate only** (Evidence URL 노출 금지)
+
+**UI 라벨링**:
+- ContactClaim: "공개 확인됨"
+- ContactCandidate: "외부 DB/간접 신호"
 
 ---
 
