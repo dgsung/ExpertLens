@@ -27,7 +27,7 @@ Scaffold Search   Extract   Viewer
 |-----------|--------|-----------------|
 | M010-0 | DONE | `python -m expertlens --help` 동작 |
 | M010-1 | DONE | Session JSON schema validation 통과 |
-| M010-2 | TODO | Expert → Claim → Evidence 역추적 가능 |
+| M010-2 | DONE | Expert → Claim → Evidence 역추적 가능 |
 | M010-3 | TODO | 브라우저에서 Graph UI + Detail Panel 표시 |
 
 ---
@@ -147,9 +147,9 @@ out/
 
 **Goal**: LLM 추출 (Claim 3종) 구현, evidence URL 역추적 확인
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-2.md
-- **Commit**: (pending)
+- **Commit**: d359f7f
 - **Owner**: (pending)
 
 ### Deliverables
@@ -160,7 +160,6 @@ src/
     ├── llm/
     │   ├── __init__.py
     │   ├── client.py        # LLM API client (HuggingFace)
-    │   ├── clarifier.py     # Requirement clarification (stub)
     │   └── extractor.py     # Evidence → PersonCandidate + Claims
     ├── identity/
     │   ├── __init__.py
@@ -176,11 +175,11 @@ out/
 
 ### Done Definition
 
-- [ ] 실제 URL에서 콘텐츠 fetch (최소 1개 테스트 URL)
-- [ ] LLM으로 PersonCandidate 추출
-- [ ] EmploymentClaim, ContactClaim 생성
-- [ ] Expert.claims[].evidence_id → Evidence.url 연결 확인 가능
-- [ ] `reports/run-<timestamp>.md`에 추출 결과 요약 포함
+- [x] 실제 URL에서 콘텐츠 fetch (최소 1개 테스트 URL)
+- [x] LLM으로 PersonCandidate 추출
+- [x] EmploymentClaim, ContactClaim 생성
+- [x] Expert.claims[].evidence_id → Evidence.url 연결 확인 가능
+- [x] `reports/run-<timestamp>.md`에 추출 결과 요약 포함
 
 ### Tests
 

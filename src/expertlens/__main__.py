@@ -17,6 +17,7 @@ def create_parser() -> argparse.ArgumentParser:
 Examples:
   python -m expertlens search "배터리 전문가" --lang ko
   python -m expertlens search "battery expert" --lang en
+  python -m expertlens extract https://example.com/article --lang ko
   python -m expertlens list
         """,
     )
@@ -47,6 +48,25 @@ Examples:
         help="Session language (default: ko)",
     )
 
+    # extract command
+    extract_parser = subparsers.add_parser(
+        "extract",
+        help="Extract experts from URLs using LLM",
+    )
+    extract_parser.add_argument(
+        "urls",
+        type=str,
+        nargs="+",
+        help="URL(s) to extract experts from",
+    )
+    extract_parser.add_argument(
+        "--lang",
+        type=str,
+        default="ko",
+        choices=["ko", "en"],
+        help="Session language (default: ko)",
+    )
+
     # list command
     subparsers.add_parser(
         "list",
@@ -64,6 +84,23 @@ def cmd_search(args: argparse.Namespace) -> int:
     print(f"Session created: {result['session_id']}")
     print(f"  Query: {result['query']}")
     print(f"  Language: {result['language']}")
+    print(f"  Experts found: {result['expert_count']}")
+    print(f"  Evidence collected: {result['evidence_count']}")
+    print(f"  Companies identified: {result['company_count']}")
+    print(f"Session file: {result['session_path']}")
+    print(f"Report file: {result['report_path']}")
+
+    return 0
+
+
+def cmd_extract(args: argparse.Namespace) -> int:
+    """Handle the extract command."""
+    with Orchestrator(use_mock=False) as orchestrator:
+        result = orchestrator.process_urls(urls=args.urls, language=args.lang)
+
+    print(f"Session created: {result['session_id']}")
+    print(f"  URLs processed: {result['urls_processed']}")
+    print(f"  URLs failed: {result['urls_failed']}")
     print(f"  Experts found: {result['expert_count']}")
     print(f"  Evidence collected: {result['evidence_count']}")
     print(f"  Companies identified: {result['company_count']}")
@@ -105,6 +142,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "search":
         return cmd_search(args)
+    elif args.command == "extract":
+        return cmd_extract(args)
     elif args.command == "list":
         return cmd_list(args)
     else:
