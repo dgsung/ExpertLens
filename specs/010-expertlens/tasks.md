@@ -29,7 +29,7 @@ Scaffold Search   Extract   Viewer
 | M010-0 | DONE | `python -m expertlens --help` 동작 |
 | M010-1 | DONE | Session JSON schema validation 통과 |
 | M010-2 | DONE | Expert → Claim → Evidence 역추적 가능 |
-| M010-3 | TODO | 브라우저에서 Graph UI + Detail Panel 표시 |
+| M010-3 | DONE | 브라우저에서 Graph UI + Detail Panel 표시 |
 
 ---
 
@@ -205,9 +205,9 @@ out/
 
 **Goal**: 정적 HTML viewer로 Graph UI, 리스트/디테일/세션 전환 구현
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-3.md
-- **Commit**: (pending)
+- **Commit**: 537125c
 - **Owner**: (pending)
 
 ### Deliverables
@@ -223,25 +223,25 @@ frontend/
 ### Done Definition
 
 **Graph UI (Cytoscape.js)**:
-- [ ] Expert 노드: 원형, `#4A90D9`, 크기는 evidenceCount에 비례
-- [ ] Company 노드: 사각형, `#7B68EE`, 고정 크기
-- [ ] Employment 엣지: Expert ↔ Company 연결
-- [ ] 노드 클릭 → Detail Panel 업데이트
-- [ ] Zoom/Pan 활성화
-- [ ] `cose` 레이아웃 (force-directed)
+- [x] Expert 노드: 원형, `#4A90D9`, 크기는 evidenceCount에 비례
+- [x] Company 노드: 사각형, `#7B68EE`, 고정 크기
+- [x] Employment 엣지: Expert ↔ Company 연결
+- [x] 노드 클릭 → Detail Panel 업데이트
+- [x] Zoom/Pan 활성화
+- [x] `cose` 레이아웃 (force-directed)
 
 **Detail Panel**:
-- [ ] Expert 이름/정보 표시
-- [ ] Claims 목록 (Employment/Contact)
-- [ ] Evidence URL 링크 (클릭 시 새 탭)
+- [x] Expert 이름/정보 표시
+- [x] Claims 목록 (Employment/Contact)
+- [x] Evidence URL 링크 (클릭 시 새 탭)
 
 **Session Management**:
-- [ ] File input으로 `session-*.json` 로드
-- [ ] 또는 URL parameter로 파일 경로 지정
+- [x] File input으로 `session-*.json` 로드
+- [ ] ~~또는 URL parameter로 파일 경로 지정~~ (v1 scope out)
 
 **General**:
-- [ ] `frontend/index.html`을 브라우저에서 열면 UI 표시
-- [ ] Mobile-friendly 반응형 레이아웃 (min-width: 768px)
+- [x] `frontend/index.html`을 브라우저에서 열면 UI 표시
+- [x] Mobile-friendly 반응형 레이아웃 (min-width: 768px)
 
 ### Cytoscape.js Integration
 

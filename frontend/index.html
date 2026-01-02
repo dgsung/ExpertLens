@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpertLens Viewer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/cytoscape@latest/dist/cytoscape.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Session Selector -->
+        <header class="session-selector">
+            <h1>ExpertLens</h1>
+            <div class="session-controls">
+                <input type="file" id="session-file" accept=".json" />
+                <label for="session-file" class="file-label">Load Session JSON</label>
+                <span id="session-info"></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Graph Panel -->
+            <section class="graph-panel">
+                <div id="cy"></div>
+                <div class="graph-legend">
+                    <span class="legend-item"><span class="node-expert"></span> Expert</span>
+                    <span class="legend-item"><span class="node-company"></span> Company</span>
+                </div>
+            </section>
+
+            <!-- Detail Panel -->
+            <aside class="detail-panel">
+                <div id="detail-content">
+                    <div class="placeholder">
+                        <p>Load a session JSON file to view the expert graph.</p>
+                        <p>Click on a node to see details.</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="graph.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
