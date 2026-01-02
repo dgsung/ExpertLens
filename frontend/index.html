@@ -9,15 +9,27 @@
 </head>
 <body>
     <div class="container">
-        <!-- Session Selector -->
+        <!-- Header -->
         <header class="session-selector">
             <h1>ExpertLens</h1>
             <div class="session-controls">
+                <!-- Search Input -->
+                <form id="search-form" class="search-form">
+                    <input type="text" id="search-input" placeholder="전문가 검색 (예: 배터리 전문가)" />
+                    <button type="submit" id="search-button">검색</button>
+                </form>
+                <!-- File Upload Fallback -->
                 <input type="file" id="session-file" accept=".json" />
-                <label for="session-file" class="file-label">Load Session JSON</label>
+                <label for="session-file" class="file-label">파일 로드</label>
                 <span id="session-info"></span>
             </div>
         </header>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-spinner"></div>
+            <p id="loading-message">검색 중...</p>
+        </div>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -34,8 +46,8 @@
             <aside class="detail-panel">
                 <div id="detail-content">
                     <div class="placeholder">
-                        <p>Load a session JSON file to view the expert graph.</p>
-                        <p>Click on a node to see details.</p>
+                        <p>검색어를 입력하거나 세션 파일을 로드하세요.</p>
+                        <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
                     </div>
                 </div>
             </aside>
@@ -43,6 +55,7 @@
     </div>
 
     <script src="graph.js"></script>
+    <script src="api.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

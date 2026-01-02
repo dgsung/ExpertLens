@@ -418,7 +418,7 @@ src/
 
 **Goal**: Frontend를 API 호출 기반으로 전환
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-7.md
 - **Commit**: (pending)
 - **Owner**: (pending)
@@ -434,10 +434,10 @@ frontend/
 
 ### Done Definition
 
-- [ ] 검색 입력 → API 호출 → 결과 표시
-- [ ] `POST /sessions` + `POST /sessions/{id}/run` 연동
-- [ ] 파일 업로드 방식 유지 (fallback)
-- [ ] Loading 상태 표시
+- [x] 검색 입력 → API 호출 → 결과 표시
+- [x] `POST /sessions` + `POST /sessions/{id}/run` 연동
+- [x] 파일 업로드 방식 유지 (fallback)
+- [x] Loading 상태 표시
 
 ### Tests
 

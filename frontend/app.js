@@ -9,24 +9,36 @@
     // Application state
     let cy = null;
     let currentSession = null;
+    let currentSessionId = null;
+    let apiAvailable = false;
 
     // DOM elements
     const elements = {
         fileInput: null,
         sessionInfo: null,
         detailContent: null,
-        graphContainer: null
+        graphContainer: null,
+        searchForm: null,
+        searchInput: null,
+        searchButton: null,
+        loadingOverlay: null,
+        loadingMessage: null
     };
 
     /**
      * Initialize the application
      */
-    function init() {
+    async function init() {
         // Cache DOM elements
         elements.fileInput = document.getElementById('session-file');
         elements.sessionInfo = document.getElementById('session-info');
         elements.detailContent = document.getElementById('detail-content');
         elements.graphContainer = document.getElementById('cy');
+        elements.searchForm = document.getElementById('search-form');
+        elements.searchInput = document.getElementById('search-input');
+        elements.searchButton = document.getElementById('search-button');
+        elements.loadingOverlay = document.getElementById('loading-overlay');
+        elements.loadingMessage = document.getElementById('loading-message');
 
         // Initialize Cytoscape graph
         cy = ExpertGraph.initGraph('cy');
@@ -34,13 +46,42 @@
         // Set up event listeners
         setupEventListeners();
 
+        // Check API availability
+        await checkApiStatus();
+
         console.log('ExpertLens Viewer initialized');
+    }
+
+    /**
+     * Check if API server is available
+     */
+    async function checkApiStatus() {
+        apiAvailable = await ExpertLensAPI.isAvailable();
+        updateApiStatusUI();
+    }
+
+    /**
+     * Update UI based on API availability
+     */
+    function updateApiStatusUI() {
+        if (apiAvailable) {
+            elements.searchButton.disabled = false;
+            elements.searchInput.placeholder = '전문가 검색 (예: 배터리 전문가)';
+            console.log('API server connected');
+        } else {
+            elements.searchButton.disabled = true;
+            elements.searchInput.placeholder = 'API 서버 연결 안됨 - 파일 로드 사용';
+            console.warn('API server not available, using file upload fallback');
+        }
     }
 
     /**
      * Set up event listeners
      */
     function setupEventListeners() {
+        // Search form submit
+        elements.searchForm.addEventListener('submit', handleSearchSubmit);
+
         // File input change
         elements.fileInput.addEventListener('change', handleFileSelect);
 
@@ -53,6 +94,54 @@
                 showPlaceholder();
             }
         });
+
+        // Retry API connection on click when disconnected
+        elements.searchInput.addEventListener('focus', async function() {
+            if (!apiAvailable) {
+                await checkApiStatus();
+            }
+        });
+    }
+
+    /**
+     * Handle search form submission
+     * @param {Event} event - Form submit event
+     */
+    async function handleSearchSubmit(event) {
+        event.preventDefault();
+
+        const query = elements.searchInput.value.trim();
+        if (!query) return;
+
+        if (!apiAvailable) {
+            showError('API 서버에 연결할 수 없습니다. 파일 로드를 사용해주세요.');
+            return;
+        }
+
+        try {
+            showLoading('세션 생성 중...');
+
+            // Create session or use existing
+            if (!currentSessionId) {
+                const result = await ExpertLensAPI.createSession('ko');
+                currentSessionId = result.session_id;
+            }
+
+            showLoading(`"${query}" 검색 중...`);
+
+            // Run search
+            const session = await ExpertLensAPI.runSearch(currentSessionId, query);
+            loadSession(session, `Session: ${currentSessionId.substring(0, 8)}...`);
+
+            // Clear input
+            elements.searchInput.value = '';
+
+        } catch (error) {
+            console.error('Search failed:', error);
+            showError(`검색 실패: ${error.message}`);
+        } finally {
+            hideLoading();
+        }
     }
 
     /**
@@ -290,10 +379,13 @@
      */
     function showPlaceholder() {
         if (!currentSession) {
+            const message = apiAvailable
+                ? '검색어를 입력하거나 세션 파일을 로드하세요.'
+                : 'API 서버 연결 안됨. 세션 JSON 파일을 로드하세요.';
             elements.detailContent.innerHTML = `
                 <div class="placeholder">
-                    <p>Load a session JSON file to view the expert graph.</p>
-                    <p>Click on a node to see details.</p>
+                    <p>${message}</p>
+                    <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
                 </div>
             `;
         } else {
@@ -301,11 +393,43 @@
             const companyCount = currentSession.companies ? currentSession.companies.length : 0;
             elements.detailContent.innerHTML = `
                 <div class="placeholder">
-                    <p>Session loaded: ${expertCount} experts, ${companyCount} companies</p>
-                    <p>Click on a node to see details.</p>
+                    <p>세션 로드됨: ${expertCount} 전문가, ${companyCount} 기업</p>
+                    <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
                 </div>
             `;
         }
+    }
+
+    /**
+     * Show loading overlay
+     * @param {string} message - Loading message
+     */
+    function showLoading(message = '로딩 중...') {
+        elements.loadingMessage.textContent = message;
+        elements.loadingOverlay.classList.remove('hidden');
+        elements.searchButton.disabled = true;
+    }
+
+    /**
+     * Hide loading overlay
+     */
+    function hideLoading() {
+        elements.loadingOverlay.classList.add('hidden');
+        if (apiAvailable) {
+            elements.searchButton.disabled = false;
+        }
+    }
+
+    /**
+     * Show error message
+     * @param {string} message - Error message
+     */
+    function showError(message) {
+        elements.sessionInfo.textContent = `오류: ${message}`;
+        elements.sessionInfo.style.color = '#e74c3c';
+        setTimeout(() => {
+            elements.sessionInfo.style.color = '';
+        }, 5000);
     }
 
     /**
