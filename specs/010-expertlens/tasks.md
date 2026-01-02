@@ -29,7 +29,7 @@ Scaffold Search   Extract   Viewer    Scaffold   API    Endpoint  API Int.
 
 | Milestone | Status | Key Deliverable |
 |-----------|--------|-----------------|
-| M010-4 | TODO | FastAPI scaffold + `/healthz` 동작 |
+| M010-4 | DONE | FastAPI scaffold + `/healthz` 동작 |
 | M010-5 | TODO | `POST /sessions`, `GET /sessions/{id}` 구현 |
 | M010-6 | TODO | `POST /sessions/{id}/run` + core orchestrator 연동 |
 | M010-7 | TODO | Frontend fetch() API 호출 |
@@ -305,9 +305,9 @@ function sessionToElements(session) {
 
 **Goal**: FastAPI 프로젝트 구조 설정, healthz 엔드포인트
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-4.md
-- **Commit**: (pending)
+- **Commit**: 5b61d87
 - **Owner**: (pending)
 
 ### Deliverables
@@ -328,10 +328,10 @@ src/
 
 ### Done Definition
 
-- [ ] `uvicorn expertlens.api.main:app` 실행 가능
-- [ ] `GET /healthz` → `{ "status": "ok" }` 응답
-- [ ] OpenAPI docs 자동 생성 (`/docs`)
-- [ ] CORS 설정 (frontend 호출 허용)
+- [x] `uvicorn expertlens.api.main:app` 실행 가능
+- [x] `GET /healthz` → `{ "status": "ok" }` 응답
+- [x] OpenAPI docs 자동 생성 (`/docs`)
+- [x] CORS 설정 (frontend 호출 허용)
 
 ### Tests
 
