@@ -1,5 +1,5 @@
 """Identity resolution module for ExpertLens."""
 
-from .resolver import IdentityResolver
+from .resolver import IdentityResolver, BlockingKey, MatchResult
 
-__all__ = ["IdentityResolver"]
+__all__ = ["IdentityResolver", "BlockingKey", "MatchResult"]

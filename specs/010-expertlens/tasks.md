@@ -32,7 +32,9 @@ Scaffold Search   Extract   Viewer    Scaffold   API    Endpoint  API Int.
 | M010-4 | DONE | FastAPI scaffold + `/healthz` 동작 |
 | M010-5 | DONE | `POST /sessions`, `GET /sessions/{id}` 구현 |
 | M010-6 | DONE | `POST /sessions/{id}/run` + core orchestrator 연동 |
-| M010-7 | TODO | Frontend fetch() API 호출 |
+| M010-7 | DONE | Frontend fetch() API 호출 |
+| M010-11 | DONE | DuckDuckGo 검색 연동 |
+| M010-12 | DONE | Blocking keys + scoring identity resolution |
 
 ### CLI Pilot (Archived)
 
@@ -507,13 +509,49 @@ src/
 
 ---
 
+## M010-12: Identity Resolution Enhancement
+
+**Goal**: Blocking keys + scoring 기반 identity resolution 구현
+
+- **Status**: DONE
+- **Report**: reports/milestone-010-12.md
+- **Commit**: 465e167
+- **Owner**: (pending)
+
+### Deliverables
+
+```
+src/
+└── expertlens/
+    └── identity/
+        └── resolver.py   # Enhanced IdentityResolver
+```
+
+### Done Definition
+
+- [x] BlockingKey dataclass 구현
+- [x] MatchResult dataclass 구현
+- [x] Blocking key extraction (LinkedIn, Email, Phone, Name+Company, Website, Name)
+- [x] Scoring algorithm (max weight based)
+- [x] Union-Find merge grouping
+- [x] Expert merge with claim deduplication
+
+### Tests
+
+| 테스트 종류 | 내용 |
+|-------------|------|
+| Unit | LinkedIn match → merge |
+| Unit | No match → keep separate |
+| Unit | Evidence/claims merge correctly |
+
+---
+
 ## vNext Milestones (Deferred)
 
 아래 마일스톤은 v1 완료 후 진행:
 
 | ID | 제목 | 설명 |
 |----|------|------|
-| M010-12 | Identity Resolution Enhancement | Blocking keys + scoring |
 | M010-13 | Advanced Graph UI | D3.js, force-graph 대안 |
 | M010-14 | Neo4j Integration | Graph DB 저장 |
 | M010-15 | React Frontend | Interactive UI |
