@@ -7,7 +7,7 @@ FastAPI is a thin wrapper - all business logic lives in expertlens.core.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import health
+from .routes import health, sessions
 
 app = FastAPI(
     title="ExpertLens API",
@@ -31,6 +31,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router, tags=["health"])
+app.include_router(sessions.router)
 
 
 @app.get("/")

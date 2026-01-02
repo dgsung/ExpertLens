@@ -30,7 +30,7 @@ Scaffold Search   Extract   Viewer    Scaffold   API    Endpoint  API Int.
 | Milestone | Status | Key Deliverable |
 |-----------|--------|-----------------|
 | M010-4 | DONE | FastAPI scaffold + `/healthz` 동작 |
-| M010-5 | TODO | `POST /sessions`, `GET /sessions/{id}` 구현 |
+| M010-5 | DONE | `POST /sessions`, `GET /sessions/{id}` 구현 |
 | M010-6 | TODO | `POST /sessions/{id}/run` + core orchestrator 연동 |
 | M010-7 | TODO | Frontend fetch() API 호출 |
 
@@ -346,9 +346,9 @@ src/
 
 **Goal**: 세션 생성/조회 API 구현
 
-- **Status**: TODO
+- **Status**: DONE
 - **Report**: reports/milestone-010-5.md
-- **Commit**: (pending)
+- **Commit**: aa66a7f
 - **Owner**: (pending)
 
 ### Deliverables
@@ -363,10 +363,10 @@ src/
 
 ### Done Definition
 
-- [ ] `POST /sessions` → `{ session_id: string }` 반환
-- [ ] `GET /sessions/{id}` → Session JSON 반환
-- [ ] 존재하지 않는 session_id → 404 응답
-- [ ] Pydantic 모델로 request/response 정의
+- [x] `POST /sessions` → `{ session_id: string }` 반환
+- [x] `GET /sessions/{id}` → Session JSON 반환
+- [x] 존재하지 않는 session_id → 404 응답
+- [x] Pydantic 모델로 request/response 정의
 
 ### Tests
 
