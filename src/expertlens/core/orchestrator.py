@@ -13,7 +13,7 @@ from ..identity import IdentityResolver
 from ..io.writer import ReportWriter, SessionWriter
 from ..llm import EvidenceExtractor, HuggingFaceClient
 from ..models import Evidence, Expert, Company, Query, Session
-from ..search import MockSearchProvider
+from ..search import DuckDuckGoSearchProvider, MockSearchProvider
 
 
 class Orchestrator:
@@ -134,34 +134,50 @@ class Orchestrator:
         """
         now = datetime.now(timezone.utc)
 
-        # Execute mock search
-        search_provider = MockSearchProvider(language=session.language)
-        results = search_provider.search(query)
-
         # Update session with new query
         session.query = query
         session.queries.append(Query(query=query, added_at=now))
         session.updated_at = now
 
-        # Merge new results with existing (avoiding duplicates by ID)
-        existing_expert_ids = {e.expert_id for e in session.experts}
-        existing_company_ids = {c.company_id for c in session.companies}
-        existing_evidence_ids = {e.evidence_id for e in session.evidence}
+        if self.use_mock:
+            # Mock search: returns pre-built experts/companies/evidence
+            search_provider = MockSearchProvider(language=session.language)
+            results = search_provider.search(query)
 
-        for expert in results["experts"]:
-            if expert.expert_id not in existing_expert_ids:
-                session.experts.append(expert)
-                existing_expert_ids.add(expert.expert_id)
+            # Merge new results with existing (avoiding duplicates by ID)
+            existing_expert_ids = {e.expert_id for e in session.experts}
+            existing_company_ids = {c.company_id for c in session.companies}
+            existing_evidence_ids = {e.evidence_id for e in session.evidence}
 
-        for company in results["companies"]:
-            if company.company_id not in existing_company_ids:
-                session.companies.append(company)
-                existing_company_ids.add(company.company_id)
+            for expert in results["experts"]:
+                if expert.expert_id not in existing_expert_ids:
+                    session.experts.append(expert)
+                    existing_expert_ids.add(expert.expert_id)
 
-        for evidence in results["evidence"]:
-            if evidence.evidence_id not in existing_evidence_ids:
-                session.evidence.append(evidence)
-                existing_evidence_ids.add(evidence.evidence_id)
+            for company in results["companies"]:
+                if company.company_id not in existing_company_ids:
+                    session.companies.append(company)
+                    existing_company_ids.add(company.company_id)
+
+            for evidence in results["evidence"]:
+                if evidence.evidence_id not in existing_evidence_ids:
+                    session.evidence.append(evidence)
+                    existing_evidence_ids.add(evidence.evidence_id)
+        else:
+            # Real DuckDuckGo search: returns Evidence (URLs) only
+            search_provider = DuckDuckGoSearchProvider(
+                language=session.language,
+                max_results=10,
+            )
+            evidence_list = search_provider.search_expert(query)
+
+            # Merge new evidence with existing
+            existing_evidence_urls = {e.url for e in session.evidence}
+
+            for evidence in evidence_list:
+                if evidence.url not in existing_evidence_urls:
+                    session.evidence.append(evidence)
+                    existing_evidence_urls.add(evidence.url)
 
         # Write updated session JSON
         self.session_writer.create_session(session)

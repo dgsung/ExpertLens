@@ -19,6 +19,7 @@ class RunSessionRequest(BaseModel):
     """Request body for running a search in a session."""
 
     query: str = Field(..., description="Search query to execute")
+    use_mock: bool = Field(default=True, description="Use mock search (True) or real DuckDuckGo search (False)")
 
 
 # Response schemas

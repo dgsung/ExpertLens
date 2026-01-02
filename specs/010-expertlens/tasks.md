@@ -473,13 +473,46 @@ Scaffold     API      Endpoint  API Int.
 
 ---
 
+## M010-11: DuckDuckGo Search Integration
+
+**Goal**: 실제 DuckDuckGo 검색 연동
+
+- **Status**: DONE
+- **Report**: reports/milestone-010-11.md
+- **Commit**: (pending)
+- **Owner**: (pending)
+
+### Deliverables
+
+```
+src/
+└── expertlens/
+    └── search/
+        └── duckduckgo.py   # DuckDuckGoSearchProvider
+```
+
+### Done Definition
+
+- [x] DuckDuckGoSearchProvider 구현
+- [x] duckduckgo-search 라이브러리 연동
+- [x] Orchestrator에서 use_mock=False 시 DDG 사용
+- [x] API에서 use_mock 파라미터 지원
+
+### Tests
+
+| 테스트 종류 | 내용 |
+|-------------|------|
+| Unit | DuckDuckGoSearchProvider.search() 테스트 |
+| Integration | API with use_mock=false |
+
+---
+
 ## vNext Milestones (Deferred)
 
 아래 마일스톤은 v1 완료 후 진행:
 
 | ID | 제목 | 설명 |
 |----|------|------|
-| M010-11 | DuckDuckGo Search Integration | 실제 DDG 검색 연동 |
 | M010-12 | Identity Resolution Enhancement | Blocking keys + scoring |
 | M010-13 | Advanced Graph UI | D3.js, force-graph 대안 |
 | M010-14 | Neo4j Integration | Graph DB 저장 |

@@ -119,7 +119,7 @@ async def run_session(session_id: str, request: RunSessionRequest) -> Session:
         )
 
     # Run search and update session
-    orchestrator = get_orchestrator()
+    orchestrator = Orchestrator(use_mock=request.use_mock)
     updated_session = orchestrator.run_session(session, request.query)
 
     return updated_session
