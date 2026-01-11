@@ -13,8 +13,6 @@
         <header class="header">
             <h1>ExpertLens</h1>
             <div class="header-controls">
-                <input type="file" id="session-file" accept=".json" />
-                <label for="session-file" class="file-label">파일 로드</label>
                 <span id="session-info"></span>
             </div>
         </header>
@@ -32,12 +30,14 @@
                     </div>
                 </div>
                 <form id="chat-form" class="chat-input-form">
-                    <input type="text" id="chat-input" placeholder="전문가 검색..." autocomplete="off" />
-                    <button type="submit" id="chat-submit">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
-                        </svg>
-                    </button>
+                    <div class="input-row">
+                        <input type="text" id="chat-input" placeholder="전문가 검색..." autocomplete="off" />
+                        <button type="submit" id="chat-submit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </form>
             </section>
 

@@ -14,7 +14,6 @@
 
     // DOM elements
     const elements = {
-        fileInput: null,
         sessionInfo: null,
         detailContent: null,
         graphContainer: null,
@@ -31,7 +30,6 @@
      */
     async function init() {
         // Cache DOM elements
-        elements.fileInput = document.getElementById('session-file');
         elements.sessionInfo = document.getElementById('session-info');
         elements.detailContent = document.getElementById('detail-content');
         elements.graphContainer = document.getElementById('cy');
@@ -73,7 +71,7 @@
         } else {
             elements.chatSubmit.disabled = true;
             elements.chatInput.placeholder = 'API 서버 연결 안됨';
-            addMessage('system', 'API 서버에 연결할 수 없습니다. 파일 로드를 사용해주세요.');
+            addMessage('system', 'API 서버에 연결할 수 없습니다.');
             console.warn('API server not available');
         }
     }
@@ -84,9 +82,6 @@
     function setupEventListeners() {
         // Chat form submit
         elements.chatForm.addEventListener('submit', handleChatSubmit);
-
-        // File input change
-        elements.fileInput.addEventListener('change', handleFileSelect);
 
         // Graph node click
         cy.on('tap', 'node', handleNodeClick);
@@ -152,7 +147,7 @@
             showLoading(`"${query}" 검색 중...`);
 
             // Run search
-            const session = await ExpertLensAPI.runSearch(currentSessionId, query);
+            const session = await ExpertLensAPI.runSearch(currentSessionId, query, false);
 
             // Load session into graph
             loadSession(session);
@@ -161,9 +156,10 @@
             const expertCount = session.experts ? session.experts.length : 0;
             const companyCount = session.companies ? session.companies.length : 0;
 
-            let responseHtml = `${expertCount}명의 전문가를 찾았습니다.`;
+            let responseHtml = '';
 
             if (expertCount > 0) {
+                responseHtml = `${expertCount}명의 전문가를 찾았습니다.`;
                 responseHtml += `<div class="result-card"><h4>전문가 목록</h4><ul>`;
                 session.experts.slice(0, 5).forEach(expert => {
                     responseHtml += `<li>${escapeHtml(expert.canonical_name)}</li>`;
@@ -172,46 +168,32 @@
                     responseHtml += `<li>... 외 ${expertCount - 5}명</li>`;
                 }
                 responseHtml += `</ul></div>`;
+            } else {
+                responseHtml = `
+                    <div class="empty-result">
+                        <p>검색 결과가 없습니다.</p>
+                        <p class="hint">다른 키워드로 시도해보세요.</p>
+                    </div>
+                `;
+            }
+
+            // Add search steps (collapsible)
+            if (session.search_steps && session.search_steps.length > 0) {
+                const stepsHtml = renderSearchSteps(session.search_steps);
+                addMessage('assistant', stepsHtml);
             }
 
             addMessage('assistant', responseHtml);
+            playNotificationSound();
 
         } catch (error) {
             console.error('Search failed:', error);
             addMessage('system', `오류: ${error.message}`);
+            playNotificationSound();
         } finally {
             hideLoading();
             elements.chatSubmit.disabled = false;
         }
-    }
-
-    /**
-     * Handle file selection
-     * @param {Event} event - File input change event
-     */
-    function handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-            try {
-                const session = JSON.parse(e.target.result);
-                loadSession(session);
-                addMessage('system', `파일 로드됨: ${file.name}`);
-            } catch (error) {
-                console.error('Failed to parse JSON:', error);
-                addMessage('system', '오류: 올바른 JSON 파일이 아닙니다.');
-            }
-        };
-
-        reader.onerror = function() {
-            console.error('Failed to read file');
-            addMessage('system', '오류: 파일을 읽을 수 없습니다.');
-        };
-
-        reader.readAsText(file);
     }
 
     /**
@@ -455,6 +437,71 @@
     }
 
     /**
+     * Render search steps as collapsible UI (ChatGPT style)
+     * @param {Array} steps - Search steps from session
+     * @returns {string} HTML string
+     */
+    function renderSearchSteps(steps) {
+        const totalSources = steps.reduce((sum, s) => sum + s.result_count, 0);
+
+        let detailsHtml = steps.map(step => {
+            const icon = step.step_type === 'search' ? '🔍' : '📄';
+            const urlList = step.urls && step.urls.length > 0
+                ? `<ul class="step-urls">${step.urls.map(url => {
+                    const domain = new URL(url).hostname;
+                    return `<li><a href="${escapeHtml(url)}" target="_blank">${escapeHtml(domain)}</a></li>`;
+                }).join('')}</ul>`
+                : '';
+
+            return `
+                <div class="search-step">
+                    <div class="step-header">
+                        <span class="step-icon">${icon}</span>
+                        <span class="step-desc">${escapeHtml(step.description)}</span>
+                        <span class="step-count">${step.result_count}건</span>
+                    </div>
+                    ${urlList}
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <details class="search-process">
+                <summary>
+                    <span class="process-icon">🔎</span>
+                    <span class="process-summary">${totalSources}개 소스 검색됨</span>
+                </summary>
+                <div class="search-steps-content">
+                    ${detailsHtml}
+                </div>
+            </details>
+        `;
+    }
+
+    /**
+     * Play notification sound when job completes
+     */
+    function playNotificationSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.3;
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.2);
+        } catch (e) {
+            console.log('Audio notification not available');
+        }
+    }
+
+    /**
      * Escape HTML special characters
      * @param {string} text - Text to escape
      * @returns {string} Escaped text
@@ -484,6 +531,112 @@
         // Truncate with ellipsis
         return display.substring(0, maxLength - 3) + '...';
     }
+
+    /**
+     * Load demo data for demonstration purposes
+     */
+    function loadDemoData() {
+        const demoSession = {
+            session_id: 'demo-session',
+            language: 'ko',
+            query: '데모 데이터',
+            created_at: new Date().toISOString(),
+            experts: [
+                {
+                    expert_id: 'demo-expert-1',
+                    canonical_name: '김철수 박사',
+                    evidence_ids: ['demo-ev-1', 'demo-ev-2'],
+                    claims: [
+                        {
+                            claim_type: 'employment',
+                            company: '삼성전자',
+                            company_id: 'demo-company-1',
+                            role: 'AI 연구소장',
+                            start_date: '2020-01',
+                            evidence_id: 'demo-ev-1'
+                        },
+                        {
+                            claim_type: 'contact',
+                            contact_type: 'email',
+                            contact_value: 'example@demo.com',
+                            status: 'verified',
+                            evidence_id: 'demo-ev-1'
+                        }
+                    ]
+                },
+                {
+                    expert_id: 'demo-expert-2',
+                    canonical_name: '이영희 교수',
+                    evidence_ids: ['demo-ev-3'],
+                    claims: [
+                        {
+                            claim_type: 'employment',
+                            company: '서울대학교',
+                            company_id: 'demo-company-2',
+                            role: '컴퓨터공학부 교수',
+                            start_date: '2015-03',
+                            evidence_id: 'demo-ev-3'
+                        }
+                    ]
+                },
+                {
+                    expert_id: 'demo-expert-3',
+                    canonical_name: '박민수',
+                    evidence_ids: ['demo-ev-4'],
+                    claims: [
+                        {
+                            claim_type: 'employment',
+                            company: '삼성전자',
+                            company_id: 'demo-company-1',
+                            role: '수석 엔지니어',
+                            start_date: '2018-06',
+                            evidence_id: 'demo-ev-4'
+                        }
+                    ]
+                }
+            ],
+            companies: [
+                {
+                    company_id: 'demo-company-1',
+                    name: '삼성전자',
+                    domain: 'samsung.com'
+                },
+                {
+                    company_id: 'demo-company-2',
+                    name: '서울대학교',
+                    domain: 'snu.ac.kr'
+                }
+            ],
+            evidence: [
+                {
+                    evidence_id: 'demo-ev-1',
+                    url: 'https://example.com/profile/kimcs',
+                    platform: 'LinkedIn'
+                },
+                {
+                    evidence_id: 'demo-ev-2',
+                    url: 'https://example.com/news/ai-research',
+                    platform: 'News'
+                },
+                {
+                    evidence_id: 'demo-ev-3',
+                    url: 'https://example.com/professor/lee',
+                    platform: 'University'
+                },
+                {
+                    evidence_id: 'demo-ev-4',
+                    url: 'https://example.com/engineer/park',
+                    platform: 'Blog'
+                }
+            ]
+        };
+
+        loadSession(demoSession);
+        addMessage('system', '데모 데이터를 로드했습니다. 노드를 클릭해서 상세 정보를 확인하세요.');
+    }
+
+    // Expose loadDemoData globally for button onclick
+    window.loadDemoData = loadDemoData;
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
