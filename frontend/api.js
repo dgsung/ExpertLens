@@ -6,7 +6,7 @@
 const ExpertLensAPI = (function() {
     'use strict';
 
-    // Detect Codespaces environment and set API URL accordingly
+    // Detect environment and set API URL accordingly
     function detectApiUrl() {
         const hostname = window.location.hostname;
 
@@ -14,6 +14,11 @@ const ExpertLensAPI = (function() {
         if (hostname.includes('.app.github.dev')) {
             // Replace port 8080 with 8000 in the URL
             return window.location.origin.replace('-8080.', '-8000.');
+        }
+
+        // Render: expertlens.onrender.com -> expertlens-api.onrender.com
+        if (hostname.endsWith('.onrender.com')) {
+            return 'https://expertlens-api.onrender.com';
         }
 
         // Local development
@@ -88,15 +93,22 @@ const ExpertLensAPI = (function() {
      * Run a search query in a session
      * @param {string} sessionId - Session UUID
      * @param {string} query - Search query
+     * @param {boolean} useMock - Use mock search (default: false for real search)
+     * @param {string|null} clarificationResponse - User's response to clarification
      * @returns {Promise<Object>} Updated session data
      */
-    async function runSearch(sessionId, query) {
+    async function runSearch(sessionId, query, useMock = false, clarificationResponse = null) {
+        const body = { query, use_mock: useMock };
+        if (clarificationResponse) {
+            body.clarification_response = clarificationResponse;
+        }
+
         const response = await fetch(`${config.baseUrl}/sessions/${sessionId}/run`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ query })
+            body: JSON.stringify(body)
         });
 
         if (!response.ok) {
@@ -129,14 +141,15 @@ const ExpertLensAPI = (function() {
      * Create session and run search in one flow
      * @param {string} query - Search query
      * @param {string} language - Session language
+     * @param {boolean} useMock - Use mock search (default: false for real search)
      * @returns {Promise<Object>} Session with search results
      */
-    async function search(query, language = 'ko') {
+    async function search(query, language = 'ko', useMock = false) {
         // Create new session
         const { session_id } = await createSession(language);
 
         // Run search
-        const session = await runSearch(session_id, query);
+        const session = await runSearch(session_id, query, useMock);
 
         return session;
     }
