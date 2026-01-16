@@ -82,6 +82,48 @@ Respond with ONLY the JSON, no other text."""
         self.language = language
         self._owns_client = client is None
 
+    # Batch processing constants
+    BATCH_SIZE = 5  # Max URLs per batch
+    CONTENT_PER_URL = 800  # Max chars per URL content in batch
+
+    BATCH_EXTRACTION_PROMPT = """You are an expert extraction system. Extract all people mentioned in the following documents, along with their employment and contact information.
+
+{documents}
+
+Extract the information and respond with ONLY a JSON object in this exact format:
+{{
+  "persons": [
+    {{
+      "name": "Person's full name",
+      "source_index": 0,
+      "employment": [
+        {{
+          "company": "Company name",
+          "role": "Job title or role",
+          "start_date": "YYYY-MM or null",
+          "end_date": "YYYY-MM or 'present' or null"
+        }}
+      ],
+      "contacts": [
+        {{
+          "type": "linkedin|email|phone|website",
+          "value": "contact value"
+        }}
+      ]
+    }}
+  ],
+  "companies": [
+    {{
+      "name": "Company name",
+      "domain": "company domain or null",
+      "region": "country code like KR, US, CN or null"
+    }}
+  ]
+}}
+
+If no persons are found, return {{"persons": [], "companies": []}}.
+Respond with ONLY the JSON, no other text."""
+
     def extract_from_evidence(
         self, evidence: Evidence, content: str
     ) -> dict[str, Any]:
@@ -122,6 +164,85 @@ Respond with ONLY the JSON, no other text."""
                 employment=p.get("employment", []),
                 contacts=p.get("contacts", []),
                 evidence_id=evidence.evidence_id,
+            )
+            persons.append(candidate)
+
+        # Parse companies
+        companies = []
+        for c in result.get("companies", []):
+            if not c.get("name"):
+                continue
+            company = Company(
+                company_id=str(uuid.uuid4()),
+                name=c["name"],
+                domain=c.get("domain"),
+                region=c.get("region"),
+            )
+            companies.append(company)
+
+        return {"persons": persons, "companies": companies}
+
+    def extract_from_evidence_batch(
+        self, evidence_list: list[tuple[Evidence, str]]
+    ) -> dict[str, Any]:
+        """Extract persons and companies from multiple evidence items in one LLM call.
+
+        Batches multiple URLs together to reduce API calls and avoid rate limits.
+
+        Args:
+            evidence_list: List of (Evidence, content) tuples.
+
+        Returns:
+            Dictionary with 'persons' (list of PersonCandidate) and
+            'companies' (list of Company).
+        """
+        if not evidence_list:
+            return {"persons": [], "companies": []}
+
+        # Filter out empty content
+        valid_items = [
+            (ev, content) for ev, content in evidence_list
+            if content and len(content.strip()) >= 50
+        ]
+
+        if not valid_items:
+            return {"persons": [], "companies": []}
+
+        # Build combined document text
+        documents_text = ""
+        for i, (evidence, content) in enumerate(valid_items):
+            # Truncate each content to fit batch
+            truncated = content[:self.CONTENT_PER_URL]
+            if len(content) > self.CONTENT_PER_URL:
+                truncated += "..."
+            documents_text += f"\n--- Document {i} (URL: {evidence.url}) ---\n{truncated}\n"
+
+        prompt = self.BATCH_EXTRACTION_PROMPT.format(documents=documents_text)
+
+        try:
+            result = self.client.extract_json(prompt, max_new_tokens=2048)
+        except (ValueError, RuntimeError) as e:
+            print(f"Batch LLM extraction failed: {e}")
+            return {"persons": [], "companies": []}
+
+        # Parse persons with evidence mapping
+        persons = []
+        for p in result.get("persons", []):
+            if not p.get("name"):
+                continue
+
+            # Map source_index to evidence_id
+            source_idx = p.get("source_index", 0)
+            if 0 <= source_idx < len(valid_items):
+                evidence_id = valid_items[source_idx][0].evidence_id
+            else:
+                evidence_id = valid_items[0][0].evidence_id if valid_items else None
+
+            candidate = PersonCandidate(
+                name=p["name"],
+                employment=p.get("employment", []),
+                contacts=p.get("contacts", []),
+                evidence_id=evidence_id,
             )
             persons.append(candidate)
 

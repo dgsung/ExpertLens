@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,18 +21,18 @@
         <main class="main-content">
             <!-- Chat Panel -->
             <section class="chat-panel">
-                <div class="chat-messages" id="chat-messages">
+                <div class="chat-messages" id="chat-messages" data-testid="chat-messages">
                     <div class="message system">
                         <div class="message-content">
-                            안녕하세요! 전문가를 검색해보세요.<br>
-                            예: "배터리 전문가", "AI 연구원"
+                            <span data-i18n="chat.welcome">Hello! Search for experts.</span><br>
+                            <span data-i18n="chat.example">e.g., "Battery expert", "AI researcher"</span>
                         </div>
                     </div>
                 </div>
                 <form id="chat-form" class="chat-input-form">
                     <div class="input-row">
-                        <input type="text" id="chat-input" placeholder="전문가 검색..." autocomplete="off" />
-                        <button type="submit" id="chat-submit">
+                        <input type="text" id="chat-input" data-testid="expert-search-input" data-i18n-placeholder="chat.placeholder" placeholder="Search experts..." autocomplete="off" />
+                        <button type="submit" id="chat-submit" data-testid="expert-search-submit">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
                             </svg>
@@ -42,19 +42,19 @@
             </section>
 
             <!-- Graph Panel -->
-            <section class="graph-panel">
-                <div id="cy"></div>
-                <div class="graph-legend">
+            <section class="graph-panel" data-testid="graph-panel">
+                <div id="cy" data-testid="graph-container"></div>
+                <div class="graph-legend" data-testid="graph-legend">
                     <span class="legend-item"><span class="node-expert"></span> Expert</span>
                     <span class="legend-item"><span class="node-company"></span> Company</span>
                 </div>
             </section>
 
             <!-- Detail Panel -->
-            <aside class="detail-panel">
-                <div id="detail-content">
+            <aside class="detail-panel" data-testid="detail-panel">
+                <div id="detail-content" data-testid="detail-content">
                     <div class="placeholder">
-                        <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
+                        <p data-i18n="detail.placeholder">Click a node to see details.</p>
                     </div>
                 </div>
             </aside>
@@ -64,9 +64,10 @@
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay hidden">
         <div class="loading-spinner"></div>
-        <p id="loading-message">검색 중...</p>
+        <p id="loading-message" data-i18n="loading.searching">Searching...</p>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="graph.js"></script>
     <script src="api.js"></script>
     <script src="app.js"></script>

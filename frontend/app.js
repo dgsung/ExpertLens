@@ -11,6 +11,7 @@
     let currentSession = null;
     let currentSessionId = null;
     let apiAvailable = false;
+    let pendingClarificationQuery = null;
 
     // DOM elements
     const elements = {
@@ -29,6 +30,9 @@
      * Initialize the application
      */
     async function init() {
+        // Initialize i18n (auto-detects browser language)
+        I18n.init();
+
         // Cache DOM elements
         elements.sessionInfo = document.getElementById('session-info');
         elements.detailContent = document.getElementById('detail-content');
@@ -49,7 +53,7 @@
         // Check API availability
         await checkApiStatus();
 
-        console.log('ExpertLens Viewer initialized');
+        console.log('ExpertLens Viewer initialized, language:', I18n.getLanguage());
     }
 
     /**
@@ -66,12 +70,12 @@
     function updateApiStatusUI() {
         if (apiAvailable) {
             elements.chatSubmit.disabled = false;
-            elements.chatInput.placeholder = '전문가 검색...';
+            elements.chatInput.placeholder = I18n.t('chat.placeholder');
             console.log('API server connected');
         } else {
             elements.chatSubmit.disabled = true;
-            elements.chatInput.placeholder = 'API 서버 연결 안됨';
-            addMessage('system', 'API 서버에 연결할 수 없습니다.');
+            elements.chatInput.placeholder = I18n.t('error.fetch');
+            addMessage('system', I18n.t('error.fetch'));
             console.warn('API server not available');
         }
     }
@@ -129,52 +133,55 @@
         elements.chatInput.value = '';
 
         if (!apiAvailable) {
-            addMessage('system', 'API 서버에 연결할 수 없습니다.');
+            addMessage('system', I18n.t('error.fetch'));
             return;
         }
 
         try {
             elements.chatSubmit.disabled = true;
-            showLoading('검색 중...');
+            showLoading(I18n.t('loading.searching'));
 
-            // Create session if needed
+            // Create session if needed (use detected language)
             if (!currentSessionId) {
-                showLoading('세션 생성 중...');
-                const result = await ExpertLensAPI.createSession('ko');
+                showLoading(I18n.t('loading.searching'));
+                const result = await ExpertLensAPI.createSession(I18n.getLanguage());
                 currentSessionId = result.session_id;
             }
 
-            showLoading(`"${query}" 검색 중...`);
+            // Check if this is a clarification response
+            let session;
+            if (pendingClarificationQuery && currentSession?.status === 'clarification_needed') {
+                showLoading(I18n.t('loading.analyzing'));
+                session = await ExpertLensAPI.runSearch(
+                    currentSessionId,
+                    pendingClarificationQuery,
+                    false,
+                    query  // clarification_response
+                );
+                pendingClarificationQuery = null;
+            } else {
+                showLoading(I18n.t('loading.searching'));
+                session = await ExpertLensAPI.runSearch(currentSessionId, query, false);
+            }
 
-            // Run search
-            const session = await ExpertLensAPI.runSearch(currentSessionId, query, false);
+            // Handle clarification needed
+            if (session.status === 'clarification_needed' && session.clarification) {
+                pendingClarificationQuery = query;
+                currentSession = session;
+                renderClarification(session.clarification);
+                hideLoading();
+                elements.chatSubmit.disabled = false;
+                return;
+            }
 
             // Load session into graph
             loadSession(session);
 
-            // Add assistant response
-            const expertCount = session.experts ? session.experts.length : 0;
-            const companyCount = session.companies ? session.companies.length : 0;
-
-            let responseHtml = '';
-
-            if (expertCount > 0) {
-                responseHtml = `${expertCount}명의 전문가를 찾았습니다.`;
-                responseHtml += `<div class="result-card"><h4>전문가 목록</h4><ul>`;
-                session.experts.slice(0, 5).forEach(expert => {
-                    responseHtml += `<li>${escapeHtml(expert.canonical_name)}</li>`;
-                });
-                if (expertCount > 5) {
-                    responseHtml += `<li>... 외 ${expertCount - 5}명</li>`;
-                }
-                responseHtml += `</ul></div>`;
+            // Render grouped results or simple list
+            if (session.expert_groups && session.expert_groups.length > 0) {
+                renderGroupedResults(session);
             } else {
-                responseHtml = `
-                    <div class="empty-result">
-                        <p>검색 결과가 없습니다.</p>
-                        <p class="hint">다른 키워드로 시도해보세요.</p>
-                    </div>
-                `;
+                renderSimpleResults(session);
             }
 
             // Add search steps (collapsible)
@@ -183,17 +190,134 @@
                 addMessage('assistant', stepsHtml);
             }
 
-            addMessage('assistant', responseHtml);
             playNotificationSound();
 
         } catch (error) {
             console.error('Search failed:', error);
-            addMessage('system', `오류: ${error.message}`);
+            addMessage('system', `${I18n.t('error.fetch')}: ${error.message}`);
             playNotificationSound();
         } finally {
             hideLoading();
             elements.chatSubmit.disabled = false;
         }
+    }
+
+    /**
+     * Render clarification question
+     * @param {Object} clarification - Clarification object with question and options
+     */
+    function renderClarification(clarification) {
+        const optionsHtml = clarification.options.map(opt => `
+            <button class="clarification-option" data-value="${escapeHtml(opt.value)}" data-testid="clarification-option">
+                ${escapeHtml(opt.label)}
+            </button>
+        `).join('');
+
+        const html = `
+            <div class="clarification-message" data-testid="assistant-clarification">
+                <p class="clarification-question">${escapeHtml(clarification.question)}</p>
+                <div class="clarification-options">
+                    ${optionsHtml}
+                </div>
+                <p class="clarification-hint">${I18n.getLanguage() === 'ko' ? '또는 직접 입력하세요' : 'Or type your own response'}</p>
+            </div>
+        `;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message assistant';
+        messageDiv.innerHTML = `<div class="message-content">${html}</div>`;
+        elements.chatMessages.appendChild(messageDiv);
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+
+        // Add click handlers for option buttons
+        messageDiv.querySelectorAll('.clarification-option').forEach(btn => {
+            btn.addEventListener('click', () => handleClarificationClick(btn.dataset.value));
+        });
+    }
+
+    /**
+     * Handle clarification option click
+     * @param {string} value - Selected option value
+     */
+    async function handleClarificationClick(value) {
+        // Map value to user-friendly text
+        const responseText = value === 'yes' ? 'Yes, include tire manufacturers' : 'No, only rubber compound manufacturers';
+
+        // Add as user message and process
+        elements.chatInput.value = responseText;
+
+        // Trigger form submit
+        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+        elements.chatForm.dispatchEvent(submitEvent);
+    }
+
+    /**
+     * Render grouped results with headers
+     * @param {Object} session - Session with expert_groups
+     */
+    function renderGroupedResults(session) {
+        const expertCount = session.experts ? session.experts.length : 0;
+
+        let html = `<p>${expertCount} ${I18n.t('message.found')}</p>`;
+        html += `<div class="results-list" data-testid="results-list">`;
+
+        session.expert_groups.forEach(group => {
+            const groupExperts = session.experts.filter(e =>
+                group.expert_ids.includes(e.expert_id)
+            );
+
+            const testId = `group-header-${group.angle}`;
+            html += `
+                <div class="expert-group">
+                    <h4 class="group-header" data-testid="${testId}">
+                        ${escapeHtml(group.label)} (${group.count})
+                    </h4>
+                    <ul class="expert-list">
+                        ${groupExperts.map(expert => `
+                            <li class="expert-card" data-testid="expert-card" data-angle="${escapeHtml(expert.industry_tag || '')}">
+                                <span class="expert-name">${escapeHtml(expert.canonical_name)}</span>
+                                <span class="expert-industry-tag" data-testid="expert-industry-tag">${escapeHtml(expert.angle || '')}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+
+        addMessage('assistant', html);
+    }
+
+    /**
+     * Render simple (non-grouped) results
+     * @param {Object} session - Session object
+     */
+    function renderSimpleResults(session) {
+        const expertCount = session.experts ? session.experts.length : 0;
+
+        let responseHtml = '';
+
+        if (expertCount > 0) {
+            responseHtml = `${expertCount} ${I18n.t('message.found')}`;
+            responseHtml += `<div class="result-card"><h4>${I18n.t('detail.expert')}</h4><ul>`;
+            session.experts.slice(0, 5).forEach(expert => {
+                responseHtml += `<li>${escapeHtml(expert.canonical_name)}</li>`;
+            });
+            if (expertCount > 5) {
+                responseHtml += `<li>... +${expertCount - 5}</li>`;
+            }
+            responseHtml += `</ul></div>`;
+        } else {
+            responseHtml = `
+                <div class="empty-result">
+                    <p>${I18n.t('error.noResults')}</p>
+                    <p class="hint">${I18n.t('error.tryAgain')}</p>
+                </div>
+            `;
+        }
+
+        addMessage('assistant', responseHtml);
     }
 
     /**
@@ -405,7 +529,7 @@
         if (!currentSession) {
             elements.detailContent.innerHTML = `
                 <div class="placeholder">
-                    <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
+                    <p>${I18n.t('detail.placeholder')}</p>
                 </div>
             `;
         } else {
@@ -413,8 +537,8 @@
             const companyCount = currentSession.companies ? currentSession.companies.length : 0;
             elements.detailContent.innerHTML = `
                 <div class="placeholder">
-                    <p>${expertCount} 전문가, ${companyCount} 기업</p>
-                    <p>노드를 클릭하면 상세 정보가 표시됩니다.</p>
+                    <p>${expertCount} ${I18n.t('detail.expert')}, ${companyCount} ${I18n.t('detail.company')}</p>
+                    <p>${I18n.t('detail.placeholder')}</p>
                 </div>
             `;
         }
@@ -424,7 +548,8 @@
      * Show loading overlay
      * @param {string} message - Loading message
      */
-    function showLoading(message = '로딩 중...') {
+    function showLoading(message = null) {
+        message = message || I18n.t('loading.searching');
         elements.loadingMessage.textContent = message;
         elements.loadingOverlay.classList.remove('hidden');
     }
@@ -632,7 +757,9 @@
         };
 
         loadSession(demoSession);
-        addMessage('system', '데모 데이터를 로드했습니다. 노드를 클릭해서 상세 정보를 확인하세요.');
+        addMessage('system', I18n.getLanguage() === 'ko'
+            ? '데모 데이터를 로드했습니다. 노드를 클릭해서 상세 정보를 확인하세요.'
+            : 'Demo data loaded. Click a node to see details.');
     }
 
     // Expose loadDemoData globally for button onclick
