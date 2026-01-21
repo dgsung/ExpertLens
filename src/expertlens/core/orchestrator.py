@@ -372,22 +372,22 @@ class Orchestrator:
         has_equipment = any(kw in query_lower for kw in equipment_keywords)
         has_industry = any(kw in query_lower for kw in industry_keywords)
 
-        if has_equipment and has_industry:
-            # Check if query is about rubber compound manufacturers
-            if "rubber" in query_lower and "compound" in query_lower:
-                return Clarification(
-                    question="Would experts from upstream tire manufacturers with HF Mixing Group mixer experience also work?",
-                    options=[
-                        ClarificationOption(
-                            value="yes",
-                            label="Yes, include tire manufacturers"
-                        ),
-                        ClarificationOption(
-                            value="no",
-                            label="No, only rubber compound manufacturers"
-                        ),
-                    ]
-                )
+        # if has_equipment and has_industry:
+        #     # Check if query is about rubber compound manufacturers
+        #     if "rubber" in query_lower and "compound" in query_lower:
+        #         return Clarification(
+        #             question="Would experts from upstream tire manufacturers with HF Mixing Group mixer experience also work?",
+        #             options=[
+        #                 ClarificationOption(
+        #                     value="yes",
+        #                     label="Yes, include tire manufacturers"
+        #                 ),
+        #                 ClarificationOption(
+        #                     value="no",
+        #                     label="No, only rubber compound manufacturers"
+        #                 ),
+        #             ]
+        #         )
 
         return None
 
