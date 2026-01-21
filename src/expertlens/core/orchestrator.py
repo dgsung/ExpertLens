@@ -13,8 +13,8 @@ from ..identity import IdentityResolver
 from ..io.writer import ReportWriter, SessionWriter
 from ..llm import EvidenceExtractor, HuggingFaceClient
 from ..models import (
-    Clarification,
-    ClarificationOption,
+#     Clarification,
+#     ClarificationOption,
     Company,
     Evidence,
     Expert,
